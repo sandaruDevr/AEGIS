@@ -1,0 +1,11 @@
+﻿{
+    "name":  "wsl_bridge",
+    "description": "WSL2 Bridge for CyberSec Agent - executes security commands in WSL2",
+    "path":  "C:\\Users\\HP\\AppData\\Local\\CyberSecAgent\\wsl_bridge.bat",
+    "type":  "stdio",
+    "allowed_origins":  [
+                            "chrome-extension://fwnazmcfzslhhzpm/",
+                            "chrome-extension://fdjikjlgmpmcbmdjghjenlgplnjljbea/",
+                            "chrome-extension://mapnldokchcbjmdjghjenlgplnjljbea/"
+                        ]
+}

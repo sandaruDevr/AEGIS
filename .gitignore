@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Secrets / environment
+.env
+*.pem
+native-host/extension_key*.txt
+
+# Runtime data (session storage, temp files, generated artifacts)
+data/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.log

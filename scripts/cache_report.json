@@ -1,0 +1,83 @@
+{
+  "model": "deepseek/deepseek-v4-flash-0731",
+  "provider_pinned": "DeepSeek",
+  "session_id": "cache-test-ea9ee9fedda6",
+  "results": [
+    {
+      "phase": "multi-turn",
+      "prompt_tokens": 566,
+      "cached_tokens": 0,
+      "completion_tokens": 200,
+      "cache_hit": false,
+      "hit_pct": 0.0,
+      "cost": 0.000591,
+      "provider": "DeepSeek",
+      "cache_status": "MISS",
+      "response": "SQL injection (SQLi) is a code injection technique where an attacker inserts malicious SQL statements into an application's query input fields, manipulating the backend database to execute unintended commands. It occurs when user-supplied data is concatenated directly into SQL queries without proper validation or parameterization.\n\n**How it works:**  \nThe application builds a SQL string using unsanitized user input",
+      "turn": 1
+    },
+    {
+      "phase": "multi-turn",
+      "prompt_tokens": 657,
+      "cached_tokens": 512,
+      "completion_tokens": 200,
+      "cache_hit": true,
+      "hit_pct": 77.9,
+      "cost": 0.000491,
+      "provider": "DeepSeek",
+      "cache_status": "MISS",
+      "response": "",
+      "turn": 2
+    },
+    {
+      "phase": "multi-turn",
+      "prompt_tokens": 677,
+      "cached_tokens": 640,
+      "completion_tokens": 200,
+      "cache_hit": true,
+      "hit_pct": 94.5,
+      "cost": 0.000465,
+      "provider": "DeepSeek",
+      "cache_status": "MISS",
+      "response": "",
+      "turn": 3
+    },
+    {
+      "phase": "multi-turn",
+      "prompt_tokens": 699,
+      "cached_tokens": 640,
+      "completion_tokens": 200,
+      "cache_hit": true,
+      "hit_pct": 91.6,
+      "cost": 0.000471,
+      "provider": "DeepSeek",
+      "cache_status": "MISS",
+      "response": "## How to Parameterize Queries in Python (Preventing SQL Injection)\n\n**Severity:** Critical (SQL Injection \u2013 CWE-89, OWASP A03:2021)  \n**Type:** Secure Coding / SQL Injection Prevention\n\nSQL injection occurs when user input is concatenated directly into SQL statements. Parameterization (also called **prepared statements** or **bound parameters**) separates SQL logic from data. The database engine treats parameters as data only, never as executable code.\n\n### Why Use Parameterized Qu",
+      "turn": 4
+    },
+    {
+      "phase": "multi-turn",
+      "prompt_tokens": 821,
+      "cached_tokens": 640,
+      "completion_tokens": 200,
+      "cache_hit": true,
+      "hit_pct": 78.0,
+      "cost": 0.000504,
+      "provider": "DeepSeek",
+      "cache_status": "MISS",
+      "response": "",
+      "turn": 5
+    },
+    {
+      "phase": "response-cache",
+      "cache_status": "MISS",
+      "response_cache_hit": false
+    }
+  ],
+  "summary": {
+    "total_prompt": 3420,
+    "total_cached": 2432,
+    "hit_pct": 71.11,
+    "cost": 0.002522
+  }
+}

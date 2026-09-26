@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Workflow Executor — CyberSec Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .wf-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    .wf-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .wf-title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .wf-title svg {
+      color: var(--accent);
+      filter: drop-shadow(0 0 8px var(--accent-glow));
+    }
+
+    .wf-form {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .wf-result-section {
+      margin-top: 28px;
+    }
+
+    .wf-result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .wf-result-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-1);
+    }
+
+    .wf-result-box {
+      background: var(--bg-1);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 16px;
+      min-height: 200px;
+      max-height: 600px;
+      overflow: auto;
+      font-size: 13px;
+      font-family: var(--mono);
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: var(--text-1);
+      transition: border-color var(--t-med);
+    }
+
+    .wf-result-box.success {
+      border-color: rgba(45, 212, 167, 0.3);
+    }
+
+    .wf-result-box.error {
+      border-color: rgba(240, 85, 106, 0.3);
+    }
+
+    .wf-status {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-2);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .wf-status.running {
+      color: var(--warning);
+    }
+
+    .wf-status .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-3);
+    }
+
+    .wf-status.running .dot {
+      background: var(--warning);
+      animation: pulse-dot 2s infinite;
+    }
+
+    .wf-status.success .dot {
+      background: var(--success);
+    }
+
+    .wf-status.error .dot {
+      background: var(--error);
+    }
+
+    .wf-btn-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .wf-btn-secondary {
+      padding: 12px 20px;
+      background: var(--bg-2);
+      color: var(--text-1);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      font-size: 14px;
+      font-weight: 500;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: all var(--t-fast);
+    }
+
+    .wf-btn-secondary:hover {
+      background: var(--bg-hover);
+      border-color: var(--text-3);
+      color: var(--text-0);
+    }
+
+    .wf-btn-secondary:active {
+      transform: scale(0.98);
+    }
+
+    .wf-empty-result {
+      color: var(--text-3);
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="wf-container">
+    <div class="wf-header">
+      <div class="wf-title">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="7" height="7" x="3" y="3" rx="1" />
+          <rect width="7" height="7" x="14" y="3" rx="1" />
+          <rect width="7" height="7" x="14" y="14" rx="1" />
+          <rect width="7" height="7" x="3" y="14" rx="1" />
+        </svg>
+        Workflow Executor
+      </div>
+      <a href="/" class="nav-link">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7" />
+        </svg>
+        Back to Agent
+      </a>
+    </div>
+
+    <div class="wf-form">
+      <div class="setting-group">
+        <label class="setting-label">Target Site</label>
+        <input id="target-url" type="url" class="setting-input" placeholder="https://example.com" />
+      </div>
+
+      <div class="setting-group">
+        <label class="setting-label">Workflow JSON</label>
+        <textarea id="workflow-json" class="setting-textarea" style="min-height:300px;" placeholder='{"variables": {"target": "https://example.com"}, "nodes": [...]}'></textarea>
+      </div>
+
+      <div class="wf-btn-row">
+        <button id="btn-load" class="wf-btn-secondary">Load Default Workflow</button>
+        <button id="btn-execute" class="btn-primary">Execute Workflow</button>
+      </div>
+    </div>
+
+    <div class="wf-result-section">
+      <div class="wf-result-header">
+        <div class="wf-result-title">Raw Execution Results (LLM Input)</div>
+        <div id="status" class="wf-status">
+          <span class="dot"></span>
+          <span class="label">Idle</span>
+        </div>
+      </div>
+      <div id="result-box" class="wf-result-box wf-empty-result">Results will appear here after execution…</div>
+    </div>
+  </div>
+
+  <script>
+    const DEFAULT_WORKFLOW = {
+      "variables": { "target": "https://example.com", "domain": "example.com" },
+      "output_nodes": ["summary"],
+      "on_error": "continue",
+      "nodes": [
+        {
+          "id": "auth",
+          "tool": "verify_authorization",
+          "params": { "target": "{{variables.target}}", "scope": "security assessment" },
+          "order": 1,
+          "timeout": 10000
+        },
+        {
+          "id": "page_info",
+          "tool": "get_page_info",
+          "params": {},
+          "order": 2
+        },
+        {
+          "id": "headers",
+          "tool": "check_security_headers",
+          "params": { "url": "{{variables.target}}" },
+          "order": 2
+        },
+        {
+          "id": "cookies",
+          "tool": "check_cookies",
+          "params": {},
+          "order": 2
+        },
+        {
+          "id": "forms",
+          "tool": "analyze_forms",
+          "params": {},
+          "order": 2
+        },
+        {
+          "id": "secrets",
+          "tool": "scan_for_secrets",
+          "params": { "includeScripts": true },
+          "order": 2
+        },
+        {
+          "id": "summary",
+          "tool": "script",
+          "params": {
+            "code": "const web = { auth: {{auth.result}}, page: {{page_info.result}}, headers: {{headers.result}}, cookies: {{cookies.result}}, forms: {{forms.result}}, secrets: {{secrets.result}} }; return { target: '{{variables.target}}', auth_ok: web.auth?.success, headers_ok: web.headers?.success, forms_count: web.forms?.success ? web.forms.result?.form_count || 0 : 0, secrets_count: web.secrets?.success ? web.secrets.result?.secrets?.length || 0 : 0 };"
+          },
+          "order": 3
+        }
+      ]
+    };
+
+    const targetInput = document.getElementById('target-url');
+    const workflowTextarea = document.getElementById('workflow-json');
+    const btnLoad = document.getElementById('btn-load');
+    const btnExecute = document.getElementById('btn-execute');
+    const resultBox = document.getElementById('result-box');
+    const statusDiv = document.getElementById('status');
+
+    function setStatus(state, label) {
+      statusDiv.className = `wf-status ${state}`;
+      statusDiv.querySelector('.label').textContent = label;
+    }
+
+    btnLoad.addEventListener('click', () => {
+      const target = targetInput.value.trim() || 'https://example.com';
+      const workflow = JSON.parse(JSON.stringify(DEFAULT_WORKFLOW));
+      workflow.variables.target = target;
+      workflowTextarea.value = JSON.stringify(workflow, null, 2);
+    });
+
+    btnExecute.addEventListener('click', async () => {
+      const target = targetInput.value.trim();
+      if (!target) {
+        resultBox.className = 'wf-result-box error';
+        resultBox.textContent = 'Please enter a target URL.';
+        resultBox.classList.remove('wf-empty-result');
+        setStatus('error', 'No target URL');
+        return;
+      }
+
+      let workflow;
+      try {
+        workflow = JSON.parse(workflowTextarea.value);
+      } catch (e) {
+        resultBox.className = 'wf-result-box error';
+        resultBox.textContent = 'Invalid JSON: ' + e.message;
+        resultBox.classList.remove('wf-empty-result');
+        setStatus('error', 'Invalid JSON');
+        return;
+      }
+
+      workflow.variables = workflow.variables || {};
+      workflow.variables.target = target;
+
+      try {
+        const url = new URL(target);
+        workflow.variables.domain = url.hostname;
+      } catch {
+        workflow.variables.domain = target.replace(/^https?:\/\//, '').split('/')[0];
+      }
+
+      btnExecute.disabled = true;
+      resultBox.className = 'wf-result-box';
+      resultBox.textContent = 'Executing workflow…';
+      resultBox.classList.remove('wf-empty-result');
+      setStatus('running', 'Running…');
+
+      try {
+        const response = await fetch('/api/execute-workflow', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ workflow })
+        });
+
+        const result = await response.json();
+        resultBox.textContent = JSON.stringify(result, null, 2);
+
+        if (result.success) {
+          resultBox.className = 'wf-result-box success';
+          setStatus('success', 'Completed');
+        } else {
+          resultBox.className = 'wf-result-box error';
+          setStatus('error', 'Failed');
+        }
+      } catch (e) {
+        resultBox.className = 'wf-result-box error';
+        resultBox.textContent = 'Error: ' + e.message;
+        setStatus('error', 'Error');
+      } finally {
+        btnExecute.disabled = false;
+      }
+    });
+
+    btnLoad.click();
+  </script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+{
+  "model": "z-ai/glm-5.3-flash",
+  "primary_provider": "Novita",
+  "session_id": "glm-novita-4a884d20aa7f",
+  "results": [
+    {
+      "phase": "multi-turn",
+      "prompt_tokens": 468,
+      "cached_tokens": 0,
+      "completion_tokens": 200,
+      "cache_hit": false,
+      "hit_pct": 0.0,
+      "cost": 8.5e-05,
+      "provider": "Novita",
+      "response": "",
+      "turn": 1
+    },
+    {
+      "phase": "multi-turn",
+      "prompt_tokens": 485,
+      "cached_tokens": 0,
+      "completion_tokens": 200,
+      "cache_hit": false,
+      "hit_pct": 0.0,
+      "cost": 8.6e-05,
+      "provider": "Novita",
+      "response": "",
+      "turn": 2
+    },
+    {
+      "phase": "multi-turn",
+      "prompt_tokens": 502,
+      "cached_tokens": 0,
+      "completion_tokens": 200,
+      "cache_hit": false,
+      "hit_pct": 0.0,
+      "cost": 8.8e-05,
+      "provider": "Novita",
+      "response": "",
+      "turn": 3
+    },
+    {
+      "phase": "multi-turn",
+      "prompt_tokens": 519,
+      "cached_tokens": 0,
+      "completion_tokens": 200,
+      "cache_hit": false,
+      "hit_pct": 0.0,
+      "cost": 8.9e-05,
+      "provider": "Novita",
+      "response": "",
+      "turn": 4
+    },
+    {
+      "phase": "multi-turn",
+      "prompt_tokens": 538,
+      "cached_tokens": 0,
+      "completion_tokens": 200,
+      "cache_hit": false,
+      "hit_pct": 0.0,
+      "cost": 9e-05,
+      "provider": "Novita",
+      "response": "",
+      "turn": 5
+    }
+  ],
+  "summary": {
+    "total_prompt": 2512,
+    "total_cached": 0,
+    "hit_pct": 0.0,
+    "cost": 0.000438
+  }
+}

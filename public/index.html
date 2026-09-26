@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CyberSec Agent — Server</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=5" />
+</head>
+<body>
+  <div id="app">
+    <!-- Sessions Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <button id="btn-new-session" class="btn-new-session" title="New session">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          New session
+        </button>
+        <button id="btn-toggle-sidebar" class="icon-btn sidebar-toggle" title="Toggle sidebar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 3h6v18h-6M3 12h12M3 12l4-4M3 12l4 4" />
+          </svg>
+        </button>
+      </div>
+      <div id="sessions-list" class="sessions-list"></div>
+    </aside>
+
+    <div class="main-area">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <div class="logo">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+          <span class="logo-text">CyberSec Agent</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <span id="conn-status" class="conn-status disconnected">
+          <span class="dot"></span>
+          <span class="label">Connecting…</span>
+        </span>
+        <span id="session-tokens" class="session-tokens" title="Token usage (input / output)">↑0 ↓0</span>
+        <span id="session-cache" class="session-cache hidden" title="Prompt cache hit rate (cached / input tokens)">⚡ 0%</span>
+        <span id="session-cost" class="session-cost" title="Session cost">$0.00</span>
+        <a href="/workflows.html" class="nav-link" title="Workflow Executor">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="7" height="7" x="3" y="3" rx="1" />
+            <rect width="7" height="7" x="14" y="3" rx="1" />
+            <rect width="7" height="7" x="14" y="14" rx="1" />
+            <rect width="7" height="7" x="3" y="14" rx="1" />
+          </svg>
+          Workflows
+        </a>
+        <button id="btn-clear" class="icon-btn" title="Clear conversation">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          </svg>
+        </button>
+        <button id="btn-settings" class="icon-btn" title="Settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Target URL + Prompt Input -->
+    <div class="input-bar">
+      <input id="target-url" type="url" class="target-input" placeholder="https://example.com — target URL" />
+      <textarea id="chat-input" class="chat-input" placeholder="Describe a security assessment task…" rows="1"></textarea>
+      <button id="btn-send" class="send-btn" title="Send">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m22 2-7 20-4-9-9-4Z" />
+          <path d="M22 2 11 13" />
+        </svg>
+      </button>
+      <button id="btn-stop" class="stop-btn hidden" title="Stop">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="14" height="14" x="5" y="5" rx="2" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Chat Messages -->
+    <div id="chat-container" class="chat-container">
+      <div id="welcome-screen" class="welcome-screen">
+        <div class="welcome-icon">
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+        </div>
+        <h2>CyberSec Agent</h2>
+        <p>AI-powered cybersecurity assessment server. Enter a target URL above and describe a task, or pick a quick-start prompt below.</p>
+        <div class="example-prompts">
+          <button class="example-prompt" data-prompt="Perform a full security assessment of this page. Check for OWASP Top 10 vulnerabilities, analyze forms, inspect headers, and scan for exposed secrets.">
+            Full security assessment
+          </button>
+          <button class="example-prompt" data-prompt="Check the security headers of this website and report any missing or misconfigured headers.">
+            Check security headers
+          </button>
+          <button class="example-prompt" data-prompt="Scan this page for exposed secrets, API keys, tokens, and sensitive information in the HTML and JavaScript.">
+            Scan for secrets
+          </button>
+          <button class="example-prompt" data-prompt="Run nmap -sV on the target domain to discover open ports and services.">
+            Port scan with nmap
+          </button>
+        </div>
+      </div>
+      <div id="messages" class="messages"></div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Settings</h2>
+          <button id="btn-close-settings" class="icon-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <!-- Provider Toggle -->
+          <div class="setting-group">
+            <label class="setting-label">LLM Provider</label>
+            <div class="provider-toggle">
+              <button class="provider-btn active" data-provider="openrouter">OpenRouter</button>
+              <button class="provider-btn" data-provider="openai">OpenAI</button>
+            </div>
+          </div>
+
+          <!-- OpenRouter API Key -->
+          <div class="setting-group" id="setting-group-openrouter-key">
+            <label class="setting-label" for="setting-api-key">OpenRouter API Key</label>
+            <input id="setting-api-key" type="password" class="setting-input" placeholder="sk-or-v1-…" />
+            <span class="setting-hint">Get your key at <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a></span>
+          </div>
+
+          <!-- OpenAI API Key -->
+          <div class="setting-group hidden" id="setting-openai-key-group">
+            <label class="setting-label" for="setting-openai-key">OpenAI API Key</label>
+            <input id="setting-openai-key" type="password" class="setting-input" placeholder="sk-…" />
+            <span class="setting-hint">Get your key at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a></span>
+          </div>
+
+          <!-- Model Selection -->
+          <div class="setting-group">
+            <label class="setting-label">Model</label>
+            <div id="model-selector" class="model-selector">
+              <button id="model-selected" class="model-selected">
+                <span id="model-selected-label" class="placeholder">Select a model…</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+              <div id="model-dropdown" class="model-dropdown hidden">
+                <input id="model-search" type="text" class="model-search" placeholder="Search models…" autocomplete="off" />
+                <div id="model-list" class="model-list"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Temperature -->
+          <div class="setting-group">
+            <label class="setting-label" for="setting-temperature">
+              Temperature: <span id="temp-value">0.7</span>
+            </label>
+            <input id="setting-temperature" type="range" min="0" max="1" step="0.1" value="0.7" class="setting-slider" />
+          </div>
+
+          <!-- Token Pricing -->
+          <div class="setting-group">
+            <label class="setting-label">Token Pricing (per 1K tokens, $)</label>
+            <div style="display:flex;gap:12px;">
+              <div style="flex:1;">
+                <label for="setting-input-price" style="font-size:12px;color:var(--text-3);">Input</label>
+                <input id="setting-input-price" type="number" min="0" step="0.0001" class="setting-input" placeholder="0.0025" style="margin-top:6px;" />
+              </div>
+              <div style="flex:1;">
+                <label for="setting-output-price" style="font-size:12px;color:var(--text-3);">Output</label>
+                <input id="setting-output-price" type="number" min="0" step="0.0001" class="setting-input" placeholder="0.01" style="margin-top:6px;" />
+              </div>
+            </div>
+            <span class="setting-hint">Leave empty to use model-list pricing</span>
+          </div>
+
+          <!-- System Prompt -->
+          <div class="setting-group">
+            <label class="setting-label" for="setting-system-prompt">System Prompt</label>
+            <textarea id="setting-system-prompt" class="setting-textarea" rows="6" placeholder="Custom system prompt (leave empty for default)"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-save-settings" class="btn-primary">Save Settings</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+    </div><!-- /main-area -->
+  </div>
+
+  <script src="app.js?v=5"></script>
+</body>
+</html>

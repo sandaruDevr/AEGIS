@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "CyberSec Agent - Vulnerability Assessment Tool",
+  "version": "2.0.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsoOz0pSSsylNiw6YwWpC0vDQ7SP6XzQfubZ/GhoRvbSRgl+gqbfb3ACast9sKM9fMIUZv8KOtipE4p8lC2Sj3hBL16SXmN+OiMODqBZfIk8RlVzcjpv/o/i8zGnV7z+Jl8i5oJgrmUCedBEMbIKXHMMhiFpLO/ZqmI7Gh4AeupgrHaYqcHhUPhxqQdGLab31DDta/aRqwXYeZUJ+YNDb/nhiFs4WR3vW1Ia6jB3/jfEr573Sgjec3YKVLeXiyexFN9XMg2KYAt+92O07j41Irp5JR6ycAFGOLQXNj8Ncjwhvl2YRr3k8AOMXYMGJysF4j3q4GjnNiM7EK6LYuX0OIwIDAQAB",
+  "description": "AI-powered cybersecurity expert extension for vulnerability assessment, penetration testing, and security auditing with WSL2 tool integration.",
+  "permissions": [
+    "sidePanel",
+    "activeTab",
+    "tabs",
+    "scripting",
+    "storage",
+    "downloads",
+    "cookies",
+    "nativeMessaging"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "src/sidepanel/sidepanel.html"
+  },
+  "action": {
+    "default_title": "Open Agentic AI Panel"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content/content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon.png",
+    "48": "icons/icon.png",
+    "128": "icons/icon.png"
+  }
+}

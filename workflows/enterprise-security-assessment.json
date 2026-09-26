@@ -1,0 +1,236 @@
+{
+  "name": "Enterprise Security Assessment",
+  "description": "Comprehensive multi-phase security assessment workflow covering reconnaissance, enumeration, vulnerability scanning, and analysis",
+  "variables": {
+    "target": "https://example.com",
+    "domain": "example.com"
+  },
+  "output_nodes": ["final_report", "summary"],
+  "on_error": "continue",
+  "nodes": [
+    {
+      "id": "auth",
+      "tool": "verify_authorization",
+      "params": {
+        "target": "{{variables.target}}",
+        "scope": "enterprise security assessment including reconnaissance, enumeration, vulnerability scanning, and penetration testing"
+      },
+      "order": 1,
+      "timeout": 10000,
+      "llm_truncate": 500
+    },
+    {
+      "id": "page_info",
+      "tool": "get_page_info",
+      "params": {},
+      "order": 2,
+      "timeout": 15000,
+      "llm_truncate": 3000
+    },
+    {
+      "id": "headers",
+      "tool": "check_security_headers",
+      "params": {
+        "url": "{{variables.target}}"
+      },
+      "order": 2,
+      "timeout": 15000,
+      "llm_truncate": 3000
+    },
+    {
+      "id": "cookies",
+      "tool": "check_cookies",
+      "params": {},
+      "order": 2,
+      "timeout": 10000,
+      "llm_truncate": 2000
+    },
+    {
+      "id": "page_structure",
+      "tool": "read_page_structure",
+      "params": {
+        "maxDepth": 3
+      },
+      "order": 2,
+      "timeout": 15000,
+      "llm_truncate": 4000
+    },
+    {
+      "id": "forms",
+      "tool": "analyze_forms",
+      "params": {},
+      "order": 2,
+      "timeout": 15000,
+      "llm_truncate": 3000
+    },
+    {
+      "id": "js_sources",
+      "tool": "inspect_js_sources",
+      "params": {
+        "includeInline": true
+      },
+      "order": 2,
+      "timeout": 20000,
+      "llm_truncate": 5000
+    },
+    {
+      "id": "secrets",
+      "tool": "scan_for_secrets",
+      "params": {
+        "includeScripts": true
+      },
+      "order": 2,
+      "timeout": 20000,
+      "llm_truncate": 3000
+    },
+    {
+      "id": "dns_lookup",
+      "tool": "run_wsl_command",
+      "params": {
+        "command": "dig {{variables.domain}} +short && echo '---' && dig {{variables.domain}} ANY +short && echo '---' && dig {{variables.domain}} MX +short && echo '---' && dig {{variables.domain}} TXT +short",
+        "timeout": 30000
+      },
+      "order": 3,
+      "timeout": 35000,
+      "llm_truncate": 4000
+    },
+    {
+      "id": "whois",
+      "tool": "run_wsl_command",
+      "params": {
+        "command": "whois {{variables.domain}} 2>/dev/null | head -80",
+        "timeout": 30000
+      },
+      "order": 3,
+      "timeout": 35000,
+      "llm_truncate": 4000
+    },
+    {
+      "id": "nmap_scan",
+      "tool": "run_wsl_command",
+      "params": {
+        "command": "nmap -sV -sC -p 80,443,8080,8443,22,21,25,53,3306,5432,6379,9200,27017,3000,5000,8000,8888 --open -T4 {{variables.domain}} 2>/dev/null",
+        "timeout": 120000
+      },
+      "order": 3,
+      "timeout": 125000,
+      "llm_truncate": 6000
+    },
+    {
+      "id": "sslscan",
+      "tool": "run_wsl_command",
+      "params": {
+        "command": "sslscan --no-ciphersuites {{variables.target}} 2>/dev/null | head -100",
+        "timeout": 30000
+      },
+      "order": 3,
+      "timeout": 35000,
+      "llm_truncate": 4000
+    },
+    {
+      "id": "robots_txt",
+      "tool": "run_wsl_command",
+      "params": {
+        "command": "curl -s {{variables.target}}/robots.txt 2>/dev/null && echo '---' && curl -s {{variables.target}}/.well-known/security.txt 2>/dev/null && echo '---' && curl -s {{variables.target}}/sitemap.xml 2>/dev/null",
+        "timeout": 20000
+      },
+      "order": 3,
+      "timeout": 25000,
+      "llm_truncate": 3000
+    },
+    {
+      "id": "consolidate_web",
+      "tool": "script",
+      "params": {
+        "code": "return { auth: {{auth.result}}, page_info: {{page_info.result}}, headers: {{headers.result}}, cookies: {{cookies.result}}, forms: {{forms.result}}, js_sources: {{js_sources.result}}, secrets: {{secrets.result}} };"
+      },
+      "order": 4,
+      "timeout": 5000,
+      "llm_truncate": 0
+    },
+    {
+      "id": "consolidate_recon",
+      "tool": "script",
+      "params": {
+        "code": "return { dns: {{dns_lookup.result}}, whois: {{whois.result}}, nmap: {{nmap_scan.result}}, ssl: {{sslscan.result}}, files: {{robots_txt.result}} };"
+      },
+      "order": 4,
+      "timeout": 5000,
+      "llm_truncate": 0
+    },
+    {
+      "id": "nuclei",
+      "tool": "run_wsl_command",
+      "params": {
+        "command": "nuclei -u {{variables.target}} -t cves/ -t exposures/ -t vulnerabilities/ -t technologies/ -severity critical,high,medium -o /tmp/nuclei_output.txt -json 2>/dev/null || echo 'nuclei: tool not available or error'",
+        "timeout": 180000
+      },
+      "order": 5,
+      "timeout": 185000,
+      "llm_truncate": 6000
+    },
+    {
+      "id": "nikto",
+      "tool": "run_wsl_command",
+      "params": {
+        "command": "nikto -h {{variables.target}} -Tuning 123bde -Display V -Format txt -output /tmp/nikto_output.txt 2>/dev/null || echo 'nikto: tool not available or error'",
+        "timeout": 120000
+      },
+      "order": 5,
+      "timeout": 125000,
+      "llm_truncate": 6000
+    },
+    {
+      "id": "gobuster",
+      "tool": "run_wsl_command",
+      "params": {
+        "command": "gobuster dir -u {{variables.target}} -w /usr/share/wordlists/dirb/common.txt -t 10 -x php,html,js,txt,zip -k -q 2>/dev/null || echo 'gobuster: tool not available or error'",
+        "timeout": 120000
+      },
+      "order": 5,
+      "timeout": 125000,
+      "llm_truncate": 6000
+    },
+    {
+      "id": "sqlmap",
+      "tool": "run_wsl_command",
+      "params": {
+        "command": "sqlmap -u '{{variables.target}}' --batch --risk=1 --level=1 --random-agent --timeout=30 2>/dev/null | head -100 || echo 'sqlmap: tool not available or no SQL injection found'",
+        "timeout": 120000
+      },
+      "order": 5,
+      "timeout": 125000,
+      "llm_truncate": 5000
+    },
+    {
+      "id": "consolidate_scan",
+      "tool": "script",
+      "params": {
+        "code": "return { nuclei: {{nuclei.result}}, nikto: {{nikto.result}}, gobuster: {{gobuster.result}}, sqlmap: {{sqlmap.result}} };"
+      },
+      "order": 6,
+      "timeout": 5000,
+      "llm_truncate": 0
+    },
+    {
+      "id": "final_report",
+      "tool": "script",
+      "params": {
+        "code": "return {\n  target: '{{variables.target}}',\n  timestamp: new Date().toISOString(),\n  web_assessment: {{consolidate_web.result}},\n  reconnaissance: {{consolidate_recon.result}},\n  vulnerability_scan: {{consolidate_scan.result}},\n  summary: {\n    total_checks: 17,\n    critical_findings: [],\n    high_risk: [],\n    medium_risk: [],\n    low_risk: []\n  }\n};"
+      },
+      "order": 7,
+      "timeout": 5000,
+      "llm_truncate": 8000
+    },
+    {
+      "id": "summary",
+      "tool": "script",
+      "params": {
+        "code": "const web = {{consolidate_web.result}}; const recon = {{consolidate_recon.result}}; const scan = {{consolidate_scan.result}}; return {\n  target: '{{variables.target}}',\n  auth_status: web.auth?.success ? 'authorized' : 'pending',\n  security_headers: web.headers?.success ? 'checked' : 'failed',\n  cookies_secure: web.cookies?.success ? 'checked' : 'failed',\n  forms_analyzed: web.forms?.success ? web.forms.result?.form_count || 0 : 0,\n  js_sources: web.js_sources?.success ? web.js_sources.result?.sources?.length || 0 : 0,\n  secrets_found: web.secrets?.success ? web.secrets.result?.secrets?.length || 0 : 0,\n  dns_resolved: recon.dns?.success,\n  ports_open: recon.nmap?.success ? (recon.nmap.result?.match(/open/g) || []).length : 0,\n  ssl_configured: recon.ssl?.success,\n  vulnerabilities_found: scan.nuclei?.success || scan.nikto?.success || scan.sqlmap?.success\n};"
+      },
+      "order": 7,
+      "timeout": 5000,
+      "llm_truncate": 3000
+    }
+  ]
+}
