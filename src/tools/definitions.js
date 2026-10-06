@@ -37,7 +37,7 @@ export const TOOL_DEFINITIONS = [
     type: 'function',
     function: {
       name: 'execute_workflow',
-      description: `Run multiple tools in one turn as a parallel/sequential DAG — use to cut turns and token usage vs sequential execute_tool calls. Tools available: same catalog as execute_tool.\n\n${WORKFLOW_SCHEMA}`,
+      description: `Run one or more tools in a single turn as a parallel/sequential DAG — use to cut turns and token usage. Even for a single action, wrap it in a one-node workflow.\n\n${TOOL_CATALOG}\n\n${WORKFLOW_SCHEMA}`,
       parameters: {
         type: 'object',
         properties: {

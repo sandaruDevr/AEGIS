@@ -792,5 +792,62 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// ---- View Router (OneEye360 shell) ----
+const VIEW_TITLES = {
+  dashboard: 'Dashboard',
+  attacks: 'Attack Log',
+  findings: 'Findings',
+  agent: 'Security Agent',
+  reports: 'Monthly Report',
+  waf: 'WAF Lab',
+};
+
+let currentView = null;
+
+function switchView(view) {
+  if (!VIEW_TITLES[view] || view === currentView) return;
+  currentView = view;
+
+  document.querySelectorAll('.view').forEach((el) => el.classList.add('hidden'));
+  const target = document.getElementById(`view-${view}`);
+  if (target) target.classList.remove('hidden');
+
+  document.querySelectorAll('.nav-item[data-view]').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.view === view);
+  });
+
+  const titleEl = document.getElementById('view-title');
+  if (titleEl) titleEl.textContent = VIEW_TITLES[view];
+
+  if (location.hash !== `#/${view}`) {
+    history.replaceState(null, '', `#/${view}`);
+  }
+
+  // Notify dashboard module so it can refresh data for the visible view.
+  if (typeof window.onViewChanged === 'function') {
+    window.onViewChanged(view);
+  }
+}
+
+function navigateTo(view) {
+  switchView(view);
+}
+
+window.navigateTo = navigateTo;
+
+document.querySelectorAll('.nav-item[data-view]').forEach((btn) => {
+  btn.addEventListener('click', () => switchView(btn.dataset.view));
+});
+
+document.querySelectorAll('.panel-link[data-goto]').forEach((btn) => {
+  btn.addEventListener('click', () => switchView(btn.dataset.goto));
+});
+
+window.addEventListener('hashchange', () => {
+  const view = location.hash.replace('#/', '') || 'dashboard';
+  switchView(view);
+});
+
 // ---- Init ----
 connectWS();
+switchView(location.hash.replace('#/', '') || 'dashboard');
