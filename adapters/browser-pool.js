@@ -226,6 +226,12 @@ export async function getCookies(domain) {
   return cookies;
 }
 
+// Clear all context cookies — used after authenticated scans so one
+// website's session never bleeds into the next.
+export async function clearCookies() {
+  if (_context) await _context.clearCookies().catch(() => {});
+}
+
 export async function captureScreenshot(pageId) {
   const entry = _pages.get(pageId || _activePageId);
   if (!entry) return null;

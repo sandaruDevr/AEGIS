@@ -1,4 +1,4 @@
-// Agent Orchestrator — per OneEye360 plan:
+// Agent Orchestrator — per AEGIS plan:
 //   "Reconnaissance → attack planning → verified exploit chains → plain-language
 //    fix reports, under strict per-agent scope assignment (one target class, one
 //    toolset, one budget each). Verification layer before any finding is reported."
@@ -50,10 +50,11 @@ const WAF_RULE_MAPPING = {
 };
 
 export class AgentOrchestrator {
-  constructor(agentLoop, eventStore, wafEngine) {
+  constructor(agentLoop, eventStore, wafEngine, credentialVault = null) {
     this.agent = agentLoop;
     this.eventStore = eventStore;
     this.waf = wafEngine;
+    this.vault = credentialVault;
     this.activeRun = null;
   }
 
@@ -82,7 +83,7 @@ export class AgentOrchestrator {
     ].join('\n');
   }
 
-  async startRun({ target, prompt, scope = 'web_app', budget = {}, clearConversation = true } = {}) {
+  async startRun({ target, prompt, scope = 'web_app', budget = {}, clearConversation = true, assetId = null, jobId = null } = {}) {
     if (this.activeRun) {
       throw new Error('Another agent run is already in progress. Stop it first.');
     }
@@ -91,6 +92,8 @@ export class AgentOrchestrator {
     const run = {
       runId: `run-${randomUUID().slice(0, 8)}`,
       target: target || null,
+      assetId,
+      jobId,
       scope: SCOPE_PRESETS[scope] ? scope : 'web_app',
       budget: runBudget,
       toolCalls: 0,
@@ -100,9 +103,14 @@ export class AgentOrchestrator {
       violations: [],
     };
     this.activeRun = run;
+    // Per-run asset context — get_login_credentials serves only this asset's
+    // stored test credentials, and only while this run is active.
+    this.agent.executor.currentAssetId = run.assetId || null;
 
     this.eventStore.append('scan_started', {
       runId: run.runId,
+      jobId: run.jobId,
+      assetId: run.assetId,
       target: run.target,
       scope: run.scope,
       title: `Scan started${run.target ? ` — ${run.target}` : ''}`,
@@ -120,6 +128,7 @@ export class AgentOrchestrator {
     } finally {
       clearTimeout(timeoutHandle);
       uninstall();
+      this.agent.executor.currentAssetId = null;
     }
 
     // Verification layer — extract, verify, dedupe, persist findings.
@@ -127,6 +136,8 @@ export class AgentOrchestrator {
 
     this.eventStore.append('scan_completed', {
       runId: run.runId,
+      jobId: run.jobId,
+      assetId: run.assetId,
       target: run.target,
       title: `Scan completed — ${verified.length} finding${verified.length === 1 ? '' : 's'}`,
       durationMs: Date.now() - run.startedAt,
@@ -233,15 +244,22 @@ export class AgentOrchestrator {
       }
       existing.add(key);
 
+      // Defense in depth: scrub stored test credentials out of any finding
+      // text before persistence, even if the agent was told not to include them.
+      const secrets = this._credentialSecrets(run.assetId);
+      const redact = (t) => this._redactSecrets(t, secrets);
+
       const event = this.eventStore.append('finding', {
         runId: run.runId,
+        jobId: run.jobId,
+        assetId: run.assetId,
         target: run.target,
-        title: String(item.title).slice(0, 200),
+        title: redact(String(item.title)).slice(0, 200),
         severity: this._normalizeSeverity(item.severity),
         attackType: item.attackType || 'other',
-        summary: String(item.summary).slice(0, 1000),
-        evidence: String(item.evidence || '').slice(0, 2000),
-        fix: String(item.fix || '').slice(0, 1000),
+        summary: redact(String(item.summary)).slice(0, 1000),
+        evidence: redact(String(item.evidence || '')).slice(0, 2000),
+        fix: redact(String(item.fix || '')).slice(0, 1000),
         cvss: Number(item.cvss) || null,
         verified: true,
         status: 'open',
@@ -272,6 +290,22 @@ export class AgentOrchestrator {
     if (!item.evidence) return { ok: false, reason: 'missing evidence — unverified' };
     if (!this._normalizeSeverity(item.severity)) return { ok: false, reason: `invalid severity '${item.severity}'` };
     return { ok: true };
+  }
+
+  // Decrypted credential strings for an asset (redaction source). Never logged.
+  _credentialSecrets(assetId) {
+    if (!this.vault || !assetId) return [];
+    const creds = this.vault.get(assetId);
+    if (!creds) return [];
+    return [creds.username, creds.password].filter((s) => s && String(s).length >= 4);
+  }
+
+  _redactSecrets(text, secrets) {
+    let out = String(text || '');
+    for (const s of secrets) {
+      out = out.split(s).join('[redacted]');
+    }
+    return out;
   }
 
   _normalizeSeverity(sev) {

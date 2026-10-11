@@ -41,6 +41,13 @@ export const MSG = {
   // Content Script -> Background
   CS_TOOL_RESULT: 'CS_TOOL_RESULT',
   CS_PAGE_READY: 'CS_PAGE_READY',
+
+  // Server -> Dashboard (scan lifecycle, broadcast)
+  SCAN_JOBS: 'SCAN_JOBS',
+  SCAN_JOB: 'SCAN_JOB',
+  SCAN_PROGRESS: 'SCAN_PROGRESS',
+  SCAN_ACTIVITY: 'SCAN_ACTIVITY',
+  SCAN_FINDING: 'SCAN_FINDING',
 };
 
 export const STORAGE_KEYS = {

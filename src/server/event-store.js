@@ -1,5 +1,5 @@
 // Event Store — append-only JSONL store with a simple query API.
-// Per OneEye360 plan: "Web dashboard + simple API over the event store."
+// Per AEGIS plan: "Web dashboard + simple API over the event store."
 // Every WAF decision, agent finding, scan lifecycle event and report is an
 // append-only event. Posture is derived, never mutated.
 
@@ -10,12 +10,20 @@ import { join } from 'path';
 const EVENT_TYPES = [
   'scan_started',
   'scan_completed',
+  'scan_checks',
   'tool_executed',
   'finding',
   'finding_updated',
   'waf_decision',
+  'waf_decision_updated',
   'waf_rule_updated',
+  'waf_config_updated',
+  'waf_install_updated',
   'report_generated',
+  'asset_added',
+  'asset_updated',
+  'asset_removed',
+  'credentials_updated',
 ];
 
 const SEVERITY_ORDER = { critical: 4, high: 3, medium: 2, low: 1, info: 0 };
@@ -118,14 +126,15 @@ export class EventStore {
 
   // ---- Derived views ----
 
-  getSummary({ now = Date.now() } = {}) {
+  getSummary({ now = Date.now(), target = null } = {}) {
     const dayMs = 24 * 60 * 60 * 1000;
-    const openFindings = this.events.filter((e) => e.type === 'finding' && e.status !== 'fixed');
-    const fixedFindings = this.events.filter((e) => e.type === 'finding' && e.status === 'fixed');
+    const matchesTarget = (e) => !target || e.target === target;
+    const openFindings = this.events.filter((e) => e.type === 'finding' && e.status !== 'fixed' && matchesTarget(e));
+    const fixedFindings = this.events.filter((e) => e.type === 'finding' && e.status === 'fixed' && matchesTarget(e));
     const wafDecisions = this.events.filter((e) => e.type === 'waf_decision');
     const blocked24h = wafDecisions.filter((e) => e.action === 'block' && now - e.ts < dayMs);
     const attacks7d = wafDecisions.filter((e) => e.action !== 'allow' && now - e.ts < 7 * dayMs);
-    const scans = this.events.filter((e) => e.type === 'scan_started');
+    const scans = this.events.filter((e) => e.type === 'scan_started' && matchesTarget(e));
     const lastScan = scans.length > 0 ? scans[scans.length - 1] : null;
 
     const bySeverity = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
@@ -148,6 +157,21 @@ export class EventStore {
       totalScans: scans.length,
       lastScanAt: lastScan ? lastScan.ts : null,
       lastScanTarget: lastScan ? lastScan.target : null,
+    };
+  }
+
+  // Compact posture for a single website (asset card view).
+  getAssetPosture(target, { now = Date.now() } = {}) {
+    if (!target) {
+      return { postureScore: null, postureLabel: 'Not scanned', openFindings: 0, findingsBySeverity: { critical: 0, high: 0, medium: 0, low: 0, info: 0 }, lastScanAt: null };
+    }
+    const s = this.getSummary({ now, target });
+    return {
+      postureScore: s.postureScore,
+      postureLabel: s.postureLabel,
+      openFindings: s.openFindings,
+      findingsBySeverity: s.findingsBySeverity,
+      lastScanAt: s.lastScanAt,
     };
   }
 
@@ -321,6 +345,7 @@ export class EventStore {
       confidence: e.confidence,
       reasons: e.reasons,
       target: e.target,
+      assetId: e.assetId,
       runId: e.runId,
       tool: e.tool,
       status: e.status,

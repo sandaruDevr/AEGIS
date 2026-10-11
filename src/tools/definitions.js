@@ -10,7 +10,7 @@ SECURITY (needs active page):
 analyze_forms{} CSRF/hidden fields/methods | inspect_js_sources{includeInline?} JS sources+endpoints | scan_for_secrets{includeScripts?} keys/tokens/creds | check_security_headers{url} | check_cookies{}
 
 BACKGROUND:
-create_file{filename,content,mimeType?} browser download | make_request{url,method?,headers?,body?} | wait{milliseconds} | run_wsl_command{command,timeout?} Linux/WSL2 (nmap, nikto, sqlmap, etc.) | verify_authorization{target?,scope?}
+create_file{filename,content,mimeType?} browser download | make_request{url,method?,headers?,body?} | wait{milliseconds} | run_wsl_command{command,timeout?} Linux/WSL2 (nmap, nikto, sqlmap, etc.) | verify_authorization{target?,scope?} | get_login_credentials{} stored test credentials for the current target (sign-in flows, re-authentication)
 
 SESSION FILES (isolated workspace):
 write_file{filename,content} | list_files{subdir?} | read_file{filename,offset?,limit?} chunked, default 200 lines | edit_file{filename,old_string,new_string,replace_all?} | delete_file{filename} | execute_python_file{filename,args?,timeout?}
@@ -65,6 +65,7 @@ export const CONTENT_SCRIPT_TOOLS = [
 export const BACKGROUND_TOOLS = [
   'create_file', 'make_request', 'wait', 'execute_script', 'run_wsl_command',
   'check_security_headers', 'check_cookies', 'verify_authorization',
+  'get_login_credentials',
   'write_file', 'list_files', 'read_file', 'edit_file', 'delete_file',
   'execute_python_file',
 ];

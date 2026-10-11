@@ -16,7 +16,12 @@ import './adapters/chrome-shim.js';
 import { initBrowser, createPage, closePage, getActivePageId } from './adapters/browser-pool.js';
 import { EventStore } from './src/server/event-store.js';
 import { WafEngine } from './src/server/waf-engine.js';
+import { JevClient } from './src/server/jev-client.js';
 import { AgentOrchestrator } from './src/server/agent-orchestrator.js';
+import { AssetRegistry } from './src/server/asset-registry.js';
+import { ScanManager } from './src/server/scan-manager.js';
+import { CredentialVault } from './src/server/credential-vault.js';
+import { resolveChecks, CHECK_GROUPS } from './src/server/check-catalog.js';
 
 // Now import brain files (they use globalThis.chrome from the shim)
 import { AgentLoop } from './src/background/agent-loop.js';
@@ -35,10 +40,33 @@ if (!existsSync(downloadsDir)) mkdirSync(downloadsDir, { recursive: true });
 // ---- Initialize Agent ----
 const agent = new AgentLoop();
 
-// ---- OneEye360 platform services ----
+// ---- AEGIS platform services ----
 const eventStore = new EventStore(dataDir);
-const wafEngine = new WafEngine(dataDir, eventStore);
-const orchestrator = new AgentOrchestrator(agent, eventStore, wafEngine);
+// Jev typed-decision client — powers WAF triage when JEV_API_KEY is set.
+// Without a key the WAF runs unchanged (escalated decisions stay held for review).
+const jevClient = new JevClient();
+const wafEngine = new WafEngine(dataDir, eventStore, { jev: jevClient });
+const assetRegistry = new AssetRegistry(dataDir, eventStore);
+const credentialVault = new CredentialVault(dataDir);
+const orchestrator = new AgentOrchestrator(agent, eventStore, wafEngine, credentialVault);
+// Tool-executor access to the vault (get_login_credentials) — scoped per-run
+// by the orchestrator to the current asset only.
+globalThis.__ONEEYE_VAULT = credentialVault;
+const scanManager = new ScanManager({
+  agent,
+  orchestrator,
+  eventStore,
+  assetRegistry,
+  credentialVault,
+  broadcast: (data) => {
+    const raw = JSON.stringify(data);
+    for (const client of wss.clients) {
+      if (client.readyState === 1) {
+        try { client.send(raw); } catch { /* connection closing */ }
+      }
+    }
+  },
+});
 
 // Pre-populate storage from env if provided
 async function initFromEnv() {
@@ -147,7 +175,7 @@ app.use(express.static(join(__dirname, 'public'), {
 
 // API: Health check
 app.get('/api/health', _checkAuth, (req, res) => {
-  res.json({ status: 'ok', version: '2.0.0', product: 'OneEye360' });
+  res.json({ status: 'ok', version: '2.0.0', product: 'AEGIS' });
 });
 
 // API: Get settings
@@ -309,12 +337,18 @@ app.post('/api/execute-workflow', _checkAuth, async (req, res) => {
 });
 
 // ============================================================
-// OneEye360 — Dashboard API over the event store
+// AEGIS — Dashboard API over the event store
 // ============================================================
 
 // API: Dashboard summary (posture score, counts — plain language)
 app.get('/api/dashboard/summary', _checkAuth, (req, res) => {
-  res.json(eventStore.getSummary());
+  const summary = eventStore.getSummary();
+  const assets = assetRegistry.list();
+  summary.assets = {
+    total: assets.length,
+    protected: assets.filter((a) => a.posture?.lastScanAt).length,
+  };
+  res.json(summary);
 });
 
 // API: Posture timeline (daily buckets for the chart)
@@ -363,15 +397,20 @@ app.patch('/api/findings/:id', _checkAuth, (req, res) => {
   res.json({ success: true, finding: EventStore.toListItem(updated) });
 });
 
-// API: WAF evaluate a payload (testing / lab)
-app.post('/api/waf/evaluate', _checkAuth, (req, res) => {
+// API: WAF evaluate a payload (testing / lab). Escalated ('held for review')
+// decisions are resolved inline via Jev typed triage so the operator sees the
+// final verdict; failures keep the decision held for review.
+app.post('/api/waf/evaluate', _checkAuth, async (req, res) => {
   const { payload, method, path, headers, body } = req.body || {};
   if (payload === undefined && !path && !body) {
     return res.status(400).json({ error: 'payload or request data required' });
   }
-  const decision = (path || body)
+  let decision = (path || body)
     ? wafEngine.evaluateRequest({ method, path, headers, body, query: payload })
     : wafEngine.evaluatePayload(payload);
+  if (decision.action === 'triage') {
+    decision = await wafEngine.triageAsync(decision);
+  }
   res.json(decision);
 });
 
@@ -417,9 +456,515 @@ app.delete('/api/waf/rules/:id', _checkAuth, async (req, res) => {
   res.json({ success: true });
 });
 
+// ---- WAF console: overview / setup / tracking / install ----
+
+const WAF_DAY_MS = 24 * 60 * 60 * 1000;
+
+// Latest state per decision (original + triage resolutions merged).
+function wafLatestDecisions() {
+  const latest = new Map();
+  for (const d of eventStore.query({ types: ['waf_decision', 'waf_decision_updated'], limit: 5000 })) {
+    const prev = latest.get(d.decisionId);
+    if (!prev || d.ts >= prev.ts) latest.set(d.decisionId, d);
+  }
+  return [...latest.values()].sort((a, b) => b.ts - a.ts);
+}
+
+// API: WAF overview — everything the protection console shows in one call.
+app.get('/api/waf/overview', _checkAuth, (req, res) => {
+  const now = Date.now();
+  const all = wafLatestDecisions();
+  const day = all.filter((d) => now - d.ts < WAF_DAY_MS);
+  const blocked24h = day.filter((d) => d.action === 'block');
+  const held = all.filter((d) => d.action === 'triage');
+
+  // 24h hourly timeline (oldest → newest).
+  const timeline = Array.from({ length: 24 }, (_, i) => {
+    const start = now - (23 - i) * 60 * 60 * 1000;
+    const bucket = day.filter((d) => d.ts >= start && d.ts < start + 60 * 60 * 1000);
+    return {
+      ts: start,
+      blocked: bucket.filter((d) => d.action === 'block').length,
+      triaged: bucket.filter((d) => d.action === 'triage').length,
+      allowed: bucket.filter((d) => d.action === 'allow').length,
+    };
+  });
+
+  // Top attack classes, 7 days.
+  const week = all.filter((d) => d.action !== 'allow' && now - d.ts < 7 * WAF_DAY_MS);
+  const byType = {};
+  for (const d of week) byType[d.attackType || 'other'] = (byType[d.attackType || 'other'] || 0) + 1;
+  const topAttacks = Object.entries(byType)
+    .map(([attackType, count]) => ({ attackType, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6);
+
+  // Per-asset tracking (edge traffic) — decisions carry assetId when they come
+  // from a deployed install; manual lab tests have none.
+  const perAsset = {};
+  for (const d of day) {
+    if (!d.assetId) continue;
+    const a = perAsset[d.assetId] || { assetId: d.assetId, decisions24h: 0, blocked24h: 0, held: 0 };
+    a.decisions24h++;
+    if (d.action === 'block') a.blocked24h++;
+    if (d.action === 'triage') a.held++;
+    perAsset[d.assetId] = a;
+  }
+
+  res.json({
+    stats: {
+      total: all.length,
+      blocked24h: blocked24h.length,
+      held: held.length,
+      allowed24h: day.filter((d) => d.action === 'allow').length,
+      customRules: wafEngine.listRules().length,
+      installs: wafEngine.listInstalls().length,
+    },
+    config: wafEngine.getConfig(),
+    triage: {
+      provider: jevClient.provider,
+      model: jevClient.model,
+      available: jevClient.available,
+    },
+    installs: wafEngine.listInstalls().map((i) => {
+      const asset = assetRegistry.get(i.assetId);
+      return { ...i, assetName: asset?.name || 'Unknown', assetUrl: asset?.url || '' };
+    }),
+    perAsset: Object.values(perAsset),
+    timeline,
+    topAttacks,
+  });
+});
+
+// API: WAF setup — view / update operating config.
+app.get('/api/waf/config', _checkAuth, (req, res) => {
+  res.json({ config: wafEngine.getConfig(), triage: { provider: jevClient.provider, model: jevClient.model, available: jevClient.available } });
+});
+
+app.put('/api/waf/config', _checkAuth, async (req, res) => {
+  try {
+    const config = await wafEngine.updateConfig(req.body || {});
+    res.json({ success: true, config });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// API: WAF decision history — merged latest state per decision.
+app.get('/api/waf/decisions', _checkAuth, (req, res) => {
+  const { action, attackType, limit = 50, offset = 0 } = req.query;
+  let items = wafLatestDecisions();
+  if (action) items = items.filter((d) => d.action === action);
+  if (attackType) items = items.filter((d) => d.attackType === attackType);
+  const start = parseInt(offset) || 0;
+  const count = Math.min(parseInt(limit) || 50, 200);
+  res.json({ items: items.slice(start, start + count), total: items.length });
+});
+
+// API: WAF installs — create / list / revoke edge deployment tokens.
+app.get('/api/waf/installs', _checkAuth, (req, res) => {
+  res.json({
+    installs: wafEngine.listInstalls().map((i) => {
+      const asset = assetRegistry.get(i.assetId);
+      return { ...i, assetName: asset?.name || 'Unknown', assetUrl: asset?.url || '' };
+    }),
+  });
+});
+
+app.post('/api/waf/installs', _checkAuth, async (req, res) => {
+  const { assetId } = req.body || {};
+  if (!assetId || !assetRegistry.get(assetId)) {
+    return res.status(400).json({ error: 'A registered website (assetId) is required.' });
+  }
+  const install = await wafEngine.createInstall(assetId);
+  res.json({ success: true, install });
+});
+
+app.delete('/api/waf/installs/:token', _checkAuth, async (req, res) => {
+  const revoked = await wafEngine.revokeInstall(req.params.token);
+  if (!revoked) return res.status(404).json({ error: 'Install not found' });
+  res.json({ success: true });
+});
+
+// API: WAF install snippet — a ready-to-paste adapter for the chosen platform.
+app.get('/api/waf/install-snippet', _checkAuth, (req, res) => {
+  const { assetId, platform = 'express' } = req.query;
+  const install = assetId ? wafEngine.getActiveInstall(assetId) : null;
+  if (!install) {
+    return res.status(400).json({ error: 'Generate an install token for this website first.' });
+  }
+  const proto = req.headers['x-forwarded-proto'] || 'http';
+  const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
+  const edgeUrl = `${proto}://${host}/api/waf/edge`;
+  const snippet = wafInstallSnippet(String(platform), edgeUrl, install.token);
+  if (!snippet) return res.status(400).json({ error: 'Unknown platform. Use express | nextjs | cloudflare | nginx.' });
+  res.json({ platform, edgeUrl, snippet });
+});
+
+// Edge adapters send request metadata; the WAF verdict comes back as an HTTP
+// status (200 = pass, 403 = block) plus a typed JSON body. Triage escalations
+// resolve asynchronously — the edge never waits on Jev.
+app.post('/api/waf/edge', (req, res) => {
+  const install = wafEngine.authenticateInstall((req.headers.authorization || '').replace(/^Bearer\s+/i, ''));
+  if (!install) return res.status(401).json({ error: 'Invalid install token' });
+
+  // Two transports: JSON body (Express/Next/Worker adapters) or
+  // X-Original-* headers (nginx auth_request, which sends no body).
+  const evalReq = req.headers['x-original-method']
+    ? {
+        method: req.headers['x-original-method'],
+        path: req.headers['x-original-path'] || '',
+        query: req.headers['x-original-query'] || '',
+        headers: {},
+        body: '',
+        assetId: install.assetId,
+      }
+    : {
+        method: req.body?.method,
+        path: req.body?.path,
+        query: req.body?.query,
+        headers: req.body?.headers,
+        body: req.body?.body,
+        assetId: install.assetId,
+      };
+
+  const decision = wafEngine.evaluateRequest(evalReq);
+  if (decision.action === 'triage') {
+    wafEngine.triageAsync(decision).catch(() => {}); // fire-and-forget — hot path stays fast
+  }
+  res.status(decision.action === 'block' ? 403 : 200).json({
+    action: decision.action,
+    decisionId: decision.decisionId,
+    attackType: decision.attackType,
+    confidence: decision.confidence,
+  });
+});
+
+function wafInstallSnippet(platform, edgeUrl, token) {
+  switch (platform) {
+    case 'express':
+      return `// AEGIS WAF — Express middleware (Node 18+, no dependencies)
+// Add BEFORE your routes. Fail-open: if the WAF is unreachable, traffic
+// passes — protection never takes your site down.
+const AEGIS_WAF_URL = '${edgeUrl}';
+const AEGIS_WAF_TOKEN = '${token}';
+
+async function AEGISWaf(req, res, next) {
+  try {
+    const r = await fetch(AEGIS_WAF_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': \`Bearer \${AEGIS_WAF_TOKEN}\`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        method: req.method,
+        path: req.path,
+        query: req.originalUrl.split('?')[1] || '',
+        headers: req.headers,
+        body: typeof req.body === 'string' ? req.body : JSON.stringify(req.body ?? ''),
+      }),
+    });
+    if (r.status === 403) {
+      return res.status(403).send('Request blocked by AEGIS WAF');
+    }
+  } catch {
+    // WAF unreachable — fail open, never take the site down.
+  }
+  next();
+}
+
+app.use(AEGISWaf);`;
+
+    case 'nextjs':
+      return `// AEGIS WAF — Next.js middleware (middleware.js in the project root)
+const AEGIS_WAF_URL = '${edgeUrl}';
+const AEGIS_WAF_TOKEN = '${token}';
+
+export default async function middleware(request) {
+  const url = new URL(request.url);
+  try {
+    const r = await fetch(AEGIS_WAF_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': \`Bearer \${AEGIS_WAF_TOKEN}\`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        method: request.method,
+        path: url.pathname,
+        query: url.search.slice(1),
+        headers: Object.fromEntries(request.headers),
+        body: '',
+      }),
+    });
+    if (r.status === 403) {
+      return new Response('Request blocked by AEGIS WAF', { status: 403 });
+    }
+  } catch {
+    // WAF unreachable — fail open.
+  }
+  // No return = continue to the app.
+}
+
+export const config = { matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'] };`;
+
+    case 'cloudflare':
+      return `// AEGIS WAF — Cloudflare Worker (deploy on a route in front of your site)
+const AEGIS_WAF_URL = '${edgeUrl}';
+const AEGIS_WAF_TOKEN = '${token}';
+
+export default {
+  async fetch(request) {
+    const url = new URL(request.url);
+    try {
+      const r = await fetch(AEGIS_WAF_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': \`Bearer \${AEGIS_WAF_TOKEN}\`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          method: request.method,
+          path: url.pathname,
+          query: url.search.slice(1),
+          headers: Object.fromEntries(request.headers),
+          body: '',
+        }),
+      });
+      if (r.status === 403) {
+        return new Response('Request blocked by AEGIS WAF', { status: 403 });
+      }
+    } catch {
+      // WAF unreachable — fail open.
+    }
+    return fetch(request);
+  },
+};`;
+
+    case 'nginx':
+      return `# AEGIS WAF — nginx auth_request integration
+# 1) Add this INSIDE the server { } block for your site:
+
+location = /_AEGIS_waf {
+    internal;
+    proxy_pass              ${edgeUrl};
+    proxy_pass_request_body off;
+    proxy_set_header        Content-Length "";
+    proxy_set_header        X-Original-Method $request_method;
+    proxy_set_header        X-Original-Path   $document_uri;
+    proxy_set_header        X-Original-Query  $args;
+    proxy_set_header        Authorization     "Bearer ${token}";
+}
+
+# 2) Add auth_request to the location that serves your app:
+location / {
+    auth_request /_AEGIS_waf;
+    # ... your existing proxy_pass / static config ...
+}
+
+# A 403 from the WAF denies the request; anything else passes.
+# Test with: nginx -t && nginx -s reload`;
+
+    default:
+      return null;
+  }
+}
+
 // API: Monthly posture report (plain language)
 app.get('/api/report/monthly', _checkAuth, (req, res) => {
   res.json(eventStore.getMonthlyReport({ month: req.query.month }));
+});
+
+// ============================================================
+// AEGIS — Assets (websites under protection)
+// ============================================================
+
+app.get('/api/assets', _checkAuth, (req, res) => {
+  res.json({
+    assets: assetRegistry.list().map((a) => ({
+      ...a,
+      credentials: credentialVault.status(a.id),
+    })),
+  });
+});
+
+app.post('/api/assets', _checkAuth, async (req, res) => {
+  const { name, url, notes } = req.body || {};
+  if (!url) return res.status(400).json({ error: 'url is required' });
+  try {
+    const asset = await assetRegistry.add({ name, url, notes });
+    res.json({ success: true, asset });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.patch('/api/assets/:id', _checkAuth, async (req, res) => {
+  const asset = await assetRegistry.update(req.params.id, req.body || {});
+  if (!asset) return res.status(404).json({ error: 'Asset not found' });
+  res.json({ success: true, asset });
+});
+
+app.delete('/api/assets/:id', _checkAuth, async (req, res) => {
+  const active = scanManager.getActiveJob();
+  if (active && active.assetId === req.params.id) {
+    return res.status(409).json({ error: 'Cannot remove a website while a scan is running on it.' });
+  }
+  const removed = await assetRegistry.remove(req.params.id);
+  if (!removed) return res.status(404).json({ error: 'Asset not found' });
+  await credentialVault.remove(req.params.id); // no orphaned credentials
+  res.json({ success: true });
+});
+
+// API: Test credentials (authenticated scanning). Masked status only —
+// plaintext secrets never leave the vault.
+app.get('/api/assets/:id/credentials', _checkAuth, (req, res) => {
+  res.json(credentialVault.status(req.params.id));
+});
+
+app.post('/api/assets/:id/credentials', _checkAuth, async (req, res) => {
+  const asset = assetRegistry.get(req.params.id);
+  if (!asset) return res.status(404).json({ error: 'Website not found' });
+  try {
+    const status = await credentialVault.set(req.params.id, req.body || {});
+    eventStore.append('credentials_updated', {
+      assetId: asset.id,
+      target: asset.url,
+      title: `Test credentials saved — ${status.label}`,
+    });
+    res.json(status);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/assets/:id/credentials', _checkAuth, async (req, res) => {
+  const removed = await credentialVault.remove(req.params.id);
+  if (!removed) return res.status(404).json({ error: 'No credentials stored for this website.' });
+  eventStore.append('credentials_updated', {
+    assetId: req.params.id,
+    target: null,
+    title: 'Test credentials removed',
+  });
+  res.json({ has: false });
+});
+
+// ============================================================
+// AEGIS — Scans (jobs)
+// ============================================================
+
+app.post('/api/scans', _checkAuth, async (req, res) => {
+  const { assetId, url, type, profile, options } = req.body || {};
+  try {
+    const job = await scanManager.createJob({ assetId, url, type, profile, options });
+    res.json({ success: true, job });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get('/api/scans', _checkAuth, (req, res) => {
+  res.json({ jobs: scanManager.listJobs(), active: scanManager.getActiveJob() });
+});
+
+// API: Scan plan preview — resolve the deterministic check plan for a
+// type × profile × options combination (launcher preview, no job created).
+app.get('/api/scans/plan', _checkAuth, (req, res) => {
+  const { type = 'assessment', profile = 'quick' } = req.query;
+  let options = {};
+  if (req.query.options) {
+    try { options = JSON.parse(req.query.options); } catch { options = {}; }
+  } else if (profile === 'custom') {
+    // Default custom preview: all groups on, so the user sees the full plan.
+    options = Object.fromEntries(Object.keys(CHECK_GROUPS).map((g) => [g, true]));
+  }
+  try {
+    const resolved = resolveChecks({ type, profile, options });
+    res.json({
+      type,
+      profile,
+      options,
+      totalChecks: resolved.totalChecks,
+      checks: resolved.checks.map((c) => ({ id: c.id, title: c.title, category: c.category })),
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get('/api/scans/:id', _checkAuth, (req, res) => {
+  const job = scanManager.getJob(req.params.id);
+  if (!job) return res.status(404).json({ error: 'Scan not found' });
+  res.json({ job });
+});
+
+app.post('/api/scans/:id/stop', _checkAuth, (req, res) => {
+  const stopped = scanManager.stopJob(req.params.id);
+  if (!stopped) return res.status(409).json({ error: 'Scan is not running.' });
+  res.json({ success: true });
+});
+
+app.get('/api/scans/:id/report', _checkAuth, (req, res) => {
+  const report = scanManager.buildReport(req.params.id);
+  if (!report) return res.status(404).json({ error: 'Scan not found' });
+  if (report.status !== 'completed' && !report.runId) {
+    return res.status(409).json({ error: 'Report is available once the scan completes.' });
+  }
+  eventStore.append('report_generated', {
+    jobId: report.jobId,
+    runId: report.runId,
+    assetId: report.asset?.id,
+    target: report.asset?.url,
+    title: `Scan report generated — ${report.asset?.name || report.asset?.url}`,
+  });
+  res.json(report);
+});
+
+// ============================================================
+// AEGIS — Mitigation plans (derived from open findings)
+// ============================================================
+
+const SLA_DAYS = { critical: 7, high: 30, medium: 90, low: 180, info: 365 };
+
+app.get('/api/mitigation-plans', _checkAuth, (req, res) => {
+  const { assetId } = req.query;
+  const findings = eventStore.query({ types: ['finding'], limit: 1000 });
+  const grouped = new Map();
+  for (const f of findings.reverse()) {
+    if (assetId && f.assetId !== assetId) continue;
+    const key = f.assetId || f.target || 'unassigned';
+    if (!grouped.has(key)) {
+      const asset = f.assetId ? assetRegistry.get(f.assetId) : null;
+      grouped.set(key, {
+        assetId: f.assetId,
+        assetName: asset?.name || f.target || 'Unassigned',
+        target: f.target,
+        steps: [],
+      });
+    }
+    const group = grouped.get(key);
+    const slaDays = SLA_DAYS[f.severity] ?? 365;
+    group.steps.push({
+      findingId: f.id,
+      title: f.title,
+      severity: f.severity,
+      attackType: f.attackType,
+      summary: f.summary,
+      fix: f.fix,
+      status: f.status || 'open',
+      dueAt: f.ts + slaDays * 24 * 60 * 60 * 1000,
+      priority: { critical: 0, high: 1, medium: 2, low: 3, info: 4 }[f.severity] ?? 4,
+    });
+  }
+  const plans = [...grouped.values()].map((g) => {
+    g.steps.sort((a, b) => a.priority - b.priority);
+    g.total = g.steps.length;
+    g.fixed = g.steps.filter((s) => s.status === 'fixed').length;
+    g.progress = g.total > 0 ? Math.round((g.fixed / g.total) * 100) : 100;
+    return g;
+  });
+  res.json({ plans });
 });
 
 // API: Scoped agent run (synchronous — returns run report)
@@ -571,8 +1116,10 @@ const server = app.listen(PORT, HOST, async () => {
   await agent.init();
   await eventStore.init();
   await wafEngine.init();
+  await assetRegistry.init();
+  await credentialVault.init();
   await initBrowser({ headless: process.env.BROWSER_HEADLESS !== 'false' });
-  console.log(`\n  OneEye360 — Autonomous AI Security Operations`);
+  console.log(`\n  AEGIS — Autonomous AI Security Operations`);
   console.log(`  Server running at http://${HOST}:${PORT}`);
   console.log(`  Provider: ${agent.provider}`);
   console.log(`  Model: ${agent.client.selectedModel || 'not set'}`);
@@ -626,6 +1173,11 @@ wss.on('connection', (ws, req) => {
 
   const wsPort = createWsPort(ws);
   agent.setPanelPort(wsPort);
+
+  // Send the current scan-job snapshot so a freshly opened dashboard is in sync.
+  try {
+    ws.send(JSON.stringify({ type: MSG.SCAN_JOBS, jobs: scanManager.listJobs() }));
+  } catch { /* client already gone */ }
 
   ws.on('message', async (rawData) => {
     // Security: Rate limit messages
@@ -796,49 +1348,6 @@ wss.on('connection', (ws, req) => {
           conversation: agent.getConversationForPanel(),
         });
         break;
-
-      // ---- Server-specific: URL + prompt scan ----
-      // Routed through the orchestrator: scoped run + budget + verification layer
-      // + findings persisted to the event store (OneEye360 plan §08).
-      case 'START_SCAN': {
-        const { url, message } = msg;
-
-        // Create isolated session directory for this scan
-        const sessionId = `session_${Date.now()}`;
-        const sessionDir = join(dataDir, 'sessions', sessionId);
-        if (!existsSync(sessionDir)) mkdirSync(sessionDir, { recursive: true });
-        agent.executor.setSessionDir(sessionDir);
-
-        // If URL provided, navigate the server browser to it
-        if (url) {
-          try {
-            console.log(`Navigating to target: ${url}`);
-            await createPage(url, {
-              timeout: parseInt(process.env.BROWSER_TIMEOUT || '30000'),
-            });
-          } catch (err) {
-            wsPort.postMessage({ type: MSG.BG_CHAT_ERROR, error: `Failed to load URL: ${err.message}` });
-            break;
-          }
-        }
-
-        const scanMessage = message || (url
-          ? `Perform a full security assessment of ${url}. Check for OWASP Top 10 vulnerabilities, analyze forms, inspect headers, scan for secrets, and generate a comprehensive report.`
-          : 'How can I help with your security assessment?');
-
-        console.log(`Agent prompt: ${scanMessage.substring(0, 100)}...`);
-        try {
-          await orchestrator.startRun({
-            target: url,
-            prompt: scanMessage,
-            scope: process.env.AGENT_SCOPE || 'web_app',
-            clearConversation: false, // panel chat keeps its own conversation
-          });
-        } catch (err) {
-          wsPort.postMessage({ type: MSG.BG_CHAT_ERROR, error: err.message });
-        }
-        break;
-      }
 
       // ---- Server-specific: Navigate to URL without starting scan ----
       case 'NAVIGATE': {

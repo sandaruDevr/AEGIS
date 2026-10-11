@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OneEye360 — Autonomous AI Security Operations</title>
+  <title>AEGIS — Autonomous Security Operations</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=6" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=8" />
 </head>
 <body>
   <div id="app">
@@ -19,40 +19,64 @@
           <circle cx="12" cy="10" r="2.5" />
         </svg>
         <div class="nav-brand-text">
-          <span class="nav-brand-name">OneEye360</span>
-          <span class="nav-brand-sub">Security Operations</span>
+          <span class="nav-brand-name">AEGIS</span>
+          <span class="nav-brand-sub">Autonomous Security</span>
         </div>
       </div>
 
       <nav class="nav-items">
-        <button class="nav-item active" data-view="dashboard" title="Security posture at a glance">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1" /><rect x="14" y="3" width="7" height="5" rx="1" /><rect x="14" y="12" width="7" height="9" rx="1" /><rect x="3" y="16" width="7" height="5" rx="1" /></svg>
-          <span>Dashboard</span>
-        </button>
-        <button class="nav-item" data-view="attacks" title="Live attack log">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></svg>
-          <span>Attack Log</span>
-        </button>
-        <button class="nav-item" data-view="findings" title="Findings and fixes">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4M12 17h.01" /></svg>
-          <span>Findings</span>
-        </button>
-        <button class="nav-item" data-view="agent" title="Security agent chat">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-          <span>Agent</span>
-        </button>
-        <button class="nav-item" data-view="reports" title="Monthly posture report">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" /></svg>
-          <span>Reports</span>
-        </button>
-        <button class="nav-item" data-view="waf" title="Protection shield lab">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" /></svg>
-          <span>WAF Lab</span>
-        </button>
+        <div class="nav-group">
+          <div class="nav-group-label">Overview</div>
+          <button class="nav-item active" data-view="dashboard" title="Security posture at a glance">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1" /><rect x="14" y="3" width="7" height="5" rx="1" /><rect x="14" y="12" width="7" height="9" rx="1" /><rect x="3" y="16" width="7" height="5" rx="1" /></svg>
+            <span>Dashboard</span>
+          </button>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-group-label">Protection</div>
+          <button class="nav-item" data-view="websites" title="Websites under protection">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
+            <span>Websites</span>
+          </button>
+          <button class="nav-item" data-view="waf" title="Protection shield console">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+            <span>WAF Shield</span>
+          </button>
+          <button class="nav-item" data-view="attacks" title="Live attack log">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
+            <span>Attack Log</span>
+          </button>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-group-label">Assessment</div>
+          <button class="nav-item" data-view="scans" title="Scan center">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></svg>
+            <span>Scans</span>
+            <span id="nav-scan-dot" class="nav-scan-dot hidden" title="Scan in progress"></span>
+          </button>
+          <button class="nav-item" data-view="vulnerabilities" title="Vulnerability register">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4M12 17h.01" /></svg>
+            <span>Vulnerabilities</span>
+          </button>
+          <button class="nav-item" data-view="mitigation" title="Mitigation plans">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></svg>
+            <span>Mitigation</span>
+          </button>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-group-label">Insights</div>
+          <button class="nav-item" data-view="reports" title="Reports">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" /></svg>
+            <span>Reports</span>
+          </button>
+        </div>
       </nav>
 
       <div class="nav-footer">
-        <a href="/workflows.html" class="nav-item nav-link-external" title="Workflow executor">
+        <a href="/workflows.html" class="nav-item nav-link-external" title="Workflow executor (advanced)">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1" /><rect width="7" height="7" x="14" y="3" rx="1" /><rect width="7" height="7" x="14" y="14" rx="1" /><rect width="7" height="7" x="3" y="14" rx="1" /></svg>
           <span>Workflows</span>
         </a>
@@ -76,7 +100,7 @@
           </span>
           <span id="session-tokens" class="session-tokens" title="Token usage (input / output)">↑0 ↓0</span>
           <span id="session-cache" class="session-cache hidden" title="Prompt cache hit rate (cached / input tokens)">⚡ 0%</span>
-          <span id="session-cost" class="session-cost" title="Session cost">$0.00</span>
+          <span id="session-cost" class="session-cost" title="AI spend this session">$0.00</span>
         </div>
       </header>
 
@@ -84,6 +108,20 @@
         <!-- ================= Dashboard ================= -->
         <section id="view-dashboard" class="view">
           <div class="dash-scroll">
+            <!-- Active scan strip -->
+            <div id="dash-active-scan" class="active-scan-strip hidden">
+              <div class="active-scan-pulse"></div>
+              <div class="active-scan-info">
+                <div class="active-scan-title" id="dash-active-title">Scan in progress</div>
+                <div class="active-scan-message" id="dash-active-message">—</div>
+              </div>
+              <div class="active-scan-progress">
+                <div class="active-scan-bar"><div class="active-scan-bar-fill" id="dash-active-bar" style="width:0%"></div></div>
+                <div class="active-scan-pct" id="dash-active-pct">0%</div>
+              </div>
+              <button id="dash-active-goto" class="btn-secondary btn-sm">Open monitor</button>
+            </div>
+
             <div class="stat-grid">
               <div class="stat-card" id="stat-posture">
                 <div class="stat-label">Security posture</div>
@@ -92,27 +130,27 @@
                 <div class="stat-bar"><div class="stat-bar-fill" id="stat-posture-bar" style="width:0%"></div></div>
               </div>
               <div class="stat-card">
-                <div class="stat-label">Attacks blocked</div>
-                <div class="stat-value" id="stat-blocked">—</div>
-                <div class="stat-sub">last 24 hours</div>
+                <div class="stat-label">Websites protected</div>
+                <div class="stat-value" id="stat-assets">—</div>
+                <div class="stat-sub" id="stat-assets-sub">—</div>
               </div>
               <div class="stat-card">
-                <div class="stat-label">Open findings</div>
+                <div class="stat-label">Open issues</div>
                 <div class="stat-value" id="stat-findings">—</div>
                 <div class="stat-sub" id="stat-findings-breakdown">—</div>
               </div>
               <div class="stat-card">
-                <div class="stat-label">Agent scans</div>
-                <div class="stat-value" id="stat-scans">—</div>
-                <div class="stat-sub" id="stat-last-scan">no scans yet</div>
+                <div class="stat-label">Attacks blocked</div>
+                <div class="stat-value" id="stat-blocked">—</div>
+                <div class="stat-sub">last 24 hours</div>
               </div>
             </div>
 
             <div class="panel-row">
-              <div class="panel panel-wide">
+              <div class="panel">
                 <div class="panel-header">
                   <h3>Security posture — last 30 days</h3>
-                  <span class="panel-hint">Score from open findings and blocked attacks</span>
+                  <span class="panel-hint">Score from open issues and blocked attacks</span>
                 </div>
                 <div id="posture-chart" class="posture-chart"></div>
               </div>
@@ -121,17 +159,17 @@
                   <h3>Quick actions</h3>
                 </div>
                 <div class="quick-actions">
-                  <button id="btn-goto-agent" class="btn-primary">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-                    Start a security scan
+                  <button id="btn-goto-scans" class="btn-primary">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></svg>
+                    Start a scan
+                  </button>
+                  <button id="btn-goto-websites" class="btn-secondary">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
+                    Add a website
                   </button>
                   <button id="btn-simulate" class="btn-secondary">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
                     Run attack simulation
-                  </button>
-                  <button id="btn-goto-report" class="btn-secondary">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg>
-                    View monthly report
                   </button>
                 </div>
                 <div id="simulate-result" class="simulate-result hidden"></div>
@@ -141,19 +179,181 @@
             <div class="panel-row">
               <div class="panel">
                 <div class="panel-header">
-                  <h3>Recent attacks</h3>
-                  <button class="panel-link" data-goto="attacks">View all</button>
+                  <h3>Recent scans</h3>
+                  <button class="panel-link" data-goto="scans">View all</button>
                 </div>
-                <div id="dash-recent-attacks" class="mini-list"><div class="mini-empty">No attacks recorded yet.</div></div>
+                <div id="dash-recent-scans" class="mini-list"><div class="mini-empty">No scans yet.</div></div>
               </div>
               <div class="panel">
                 <div class="panel-header">
-                  <h3>Latest findings</h3>
-                  <button class="panel-link" data-goto="findings">View all</button>
+                  <h3>Latest issues</h3>
+                  <button class="panel-link" data-goto="vulnerabilities">View all</button>
                 </div>
-                <div id="dash-recent-findings" class="mini-list"><div class="mini-empty">No findings yet — run a scan.</div></div>
+                <div id="dash-recent-findings" class="mini-list"><div class="mini-empty">No issues found yet — run a scan.</div></div>
               </div>
             </div>
+          </div>
+        </section>
+
+        <!-- ================= Websites ================= -->
+        <section id="view-websites" class="view hidden">
+          <div class="dash-scroll">
+            <div class="add-asset-bar">
+              <input id="asset-name" type="text" class="setting-input" placeholder="Name (optional — e.g. Marketing Site)" />
+              <input id="asset-url" type="url" class="setting-input" placeholder="https://yourwebsite.com" />
+              <button id="btn-add-asset" class="btn-primary">Add website</button>
+            </div>
+            <div id="assets-grid" class="assets-grid"></div>
+          </div>
+        </section>
+
+        <!-- ================= Scans ================= -->
+        <section id="view-scans" class="view hidden">
+          <div class="dash-scroll">
+            <!-- Live monitor -->
+            <div id="scan-monitor" class="scan-monitor hidden">
+              <div class="scan-monitor-header">
+                <div>
+                  <div class="scan-monitor-title" id="monitor-title">Scan in progress</div>
+                  <div class="scan-monitor-sub" id="monitor-sub">—</div>
+                </div>
+                <button id="btn-stop-scan" class="btn-danger">Stop scan</button>
+              </div>
+
+              <div class="scan-stepper" id="scan-stepper"></div>
+
+              <div class="scan-progress-row">
+                <div class="scan-progress-bar"><div class="scan-progress-fill" id="monitor-progress" style="width:0%"></div></div>
+                <div class="scan-progress-pct" id="monitor-progress-pct">0%</div>
+              </div>
+
+              <div class="scan-counters">
+                <div class="scan-counter">
+                  <div class="scan-counter-value" id="monitor-checks">0</div>
+                  <div class="scan-counter-label">Checks performed</div>
+                </div>
+                <div class="scan-counter">
+                  <div class="scan-counter-value" id="monitor-suspects">0</div>
+                  <div class="scan-counter-label">Possible issues</div>
+                </div>
+                <div class="scan-counter">
+                  <div class="scan-counter-value" id="monitor-confirmed">—</div>
+                  <div class="scan-counter-label">Confirmed issues</div>
+                </div>
+                <div class="scan-counter">
+                  <div class="scan-counter-value" id="monitor-elapsed">0:00</div>
+                  <div class="scan-counter-label">Elapsed</div>
+                </div>
+              </div>
+
+              <div class="scan-feed-wrap">
+                <div class="scan-feed-title">Live activity</div>
+                <div id="scan-feed" class="scan-feed"></div>
+              </div>
+
+              <div id="scan-result-banner" class="scan-result-banner hidden"></div>
+            </div>
+
+            <!-- New scan launcher -->
+            <div class="panel" id="scan-launcher">
+              <div class="panel-header">
+                <h3>New scan</h3>
+                <span class="panel-hint">Pick a website, choose what to run, and we handle the rest</span>
+              </div>
+              <div class="launcher-grid">
+                <div class="launcher-step">
+                  <div class="launcher-step-label">1 · Website</div>
+                  <select id="scan-asset" class="filter-select launcher-select"></select>
+                </div>
+                <div class="launcher-step">
+                  <div class="launcher-step-label">2 · What to run</div>
+                  <div class="type-cards">
+                    <button class="type-card active" data-type="assessment">
+                      <div class="type-card-title">Security Assessment</div>
+                      <div class="type-card-desc">Evaluates configuration and code for weaknesses, with evidence for every issue.</div>
+                    </button>
+                    <button class="type-card" data-type="pentest">
+                      <div class="type-card-title">Penetration Test</div>
+                      <div class="type-card-desc">Actively verifies that weaknesses are exploitable — the way a real attacker would, safely.</div>
+                    </button>
+                  </div>
+                </div>
+                <div class="launcher-step">
+                  <div class="launcher-step-label">3 · Depth</div>
+                  <div class="profile-cards">
+                    <button class="profile-card active" data-profile="quick">
+                      <div class="profile-card-title">Quick</div>
+                      <div class="profile-card-desc">Essential checks — days of manual review, in minutes.</div>
+                    </button>
+                    <button class="profile-card" data-profile="full">
+                      <div class="profile-card-title">Full</div>
+                      <div class="profile-card-desc">Everything we can safely test — weeks of expert effort, compressed.</div>
+                    </button>
+                    <button class="profile-card" data-profile="custom">
+                      <div class="profile-card-title">Custom</div>
+                      <div class="profile-card-desc">Choose exactly what to test.</div>
+                    </button>
+                  </div>
+                  <div id="custom-options" class="custom-options hidden">
+                    <label class="custom-option"><input type="checkbox" id="opt-headers" checked /> Security settings & headers</label>
+                    <label class="custom-option"><input type="checkbox" id="opt-cookies" checked /> Cookie & session safety</label>
+                    <label class="custom-option"><input type="checkbox" id="opt-forms" checked /> Forms & input handling</label>
+                    <label class="custom-option"><input type="checkbox" id="opt-secrets" checked /> Exposed keys and secrets</label>
+                    <label class="custom-option"><input type="checkbox" id="opt-js" /> Website scripts & code</label>
+                    <label class="custom-option"><input type="checkbox" id="opt-network" /> Open ports & services</label>
+                    <label class="custom-option"><input type="checkbox" id="opt-deep" /> Deep application testing</label>
+                  </div>
+                  <div id="scan-plan-preview" class="plan-preview"></div>
+                </div>
+              </div>
+              <div class="launcher-footer">
+                <span class="launcher-hint" id="scan-estimate">Estimated: a few minutes</span>
+                <button id="btn-start-scan" class="btn-primary btn-lg">Start scan</button>
+              </div>
+            </div>
+
+            <!-- Job history -->
+            <div class="panel">
+              <div class="panel-header">
+                <h3>Scan history</h3>
+                <button id="btn-refresh-jobs" class="panel-link">Refresh</button>
+              </div>
+              <div id="jobs-table" class="jobs-table"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= Vulnerabilities ================= -->
+        <section id="view-vulnerabilities" class="view hidden">
+          <div class="dash-scroll">
+            <div class="filter-bar">
+              <select id="filter-finding-severity" class="filter-select">
+                <option value="">All severities</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+                <option value="info">Info</option>
+              </select>
+              <select id="filter-finding-status" class="filter-select">
+                <option value="">All statuses</option>
+                <option value="open">Open</option>
+                <option value="acknowledged">Acknowledged</option>
+                <option value="fixed">Fixed</option>
+              </select>
+              <select id="filter-finding-asset" class="filter-select">
+                <option value="">All websites</option>
+              </select>
+              <button id="btn-refresh-findings" class="btn-secondary">Refresh</button>
+            </div>
+            <div id="findings-list" class="findings-list"></div>
+          </div>
+        </section>
+
+        <!-- ================= Mitigation ================= -->
+        <section id="view-mitigation" class="view hidden">
+          <div class="dash-scroll">
+            <div id="mitigation-plans" class="mitigation-plans"></div>
           </div>
         </section>
 
@@ -186,152 +386,217 @@
           </div>
         </section>
 
-        <!-- ================= Findings ================= -->
-        <section id="view-findings" class="view hidden">
-          <div class="dash-scroll">
-            <div class="filter-bar">
-              <select id="filter-finding-severity" class="filter-select">
-                <option value="">All severities</option>
-                <option value="critical">Critical</option>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
-                <option value="info">Info</option>
-              </select>
-              <select id="filter-finding-status" class="filter-select">
-                <option value="">All statuses</option>
-                <option value="open">Open</option>
-                <option value="acknowledged">Acknowledged</option>
-                <option value="fixed">Fixed</option>
-              </select>
-              <button id="btn-refresh-findings" class="btn-secondary">Refresh</button>
-            </div>
-            <div id="findings-list" class="findings-list"></div>
-          </div>
-        </section>
-
-        <!-- ================= Agent ================= -->
-        <section id="view-agent" class="view hidden">
-          <div class="agent-layout">
-            <aside id="sidebar" class="sidebar">
-              <div class="sidebar-header">
-                <button id="btn-new-session" class="btn-new-session" title="New session">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 5v14M5 12h14" />
-                  </svg>
-                  New session
-                </button>
-                <button id="btn-toggle-sidebar" class="icon-btn sidebar-toggle" title="Toggle sidebar">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M15 3h6v18h-6M3 12h12M3 12l4-4M3 12l4 4" />
-                  </svg>
-                </button>
-              </div>
-              <div id="sessions-list" class="sessions-list"></div>
-            </aside>
-
-            <div class="agent-main">
-              <!-- Target URL + Prompt Input -->
-              <div class="input-bar">
-                <input id="target-url" type="url" class="target-input" placeholder="https://example.com — target URL" />
-                <textarea id="chat-input" class="chat-input" placeholder="Describe a security assessment task…" rows="1"></textarea>
-                <button id="btn-send" class="send-btn" title="Send">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="m22 2-7 20-4-9-9-4Z" />
-                    <path d="M22 2 11 13" />
-                  </svg>
-                </button>
-                <button id="btn-stop" class="stop-btn hidden" title="Stop">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect width="14" height="14" x="5" y="5" rx="2" />
-                  </svg>
-                </button>
-                <button id="btn-clear" class="icon-btn" title="Clear conversation">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                  </svg>
-                </button>
-              </div>
-
-              <!-- Chat Messages -->
-              <div id="chat-container" class="chat-container">
-                <div id="welcome-screen" class="welcome-screen">
-                  <div class="welcome-icon">
-                    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                      <circle cx="12" cy="10" r="2.5" />
-                    </svg>
-                  </div>
-                  <h2>OneEye360 Security Agent</h2>
-                  <p>Autonomous security testing with plain-language reports. Enter a target URL above, describe a task, or pick a quick-start below. Findings are verified before they reach your dashboard.</p>
-                  <div class="example-prompts">
-                    <button class="example-prompt" data-prompt="Perform a full security assessment of this page. Check for OWASP Top 10 vulnerabilities, analyze forms, inspect headers, and scan for exposed secrets.">
-                      Full security assessment
-                    </button>
-                    <button class="example-prompt" data-prompt="Check the security headers of this website and report any missing or misconfigured headers.">
-                      Check security headers
-                    </button>
-                    <button class="example-prompt" data-prompt="Scan this page for exposed secrets, API keys, tokens, and sensitive information in the HTML and JavaScript.">
-                      Scan for secrets
-                    </button>
-                    <button class="example-prompt" data-prompt="Run nmap -sV on the target domain to discover open ports and services.">
-                      Port scan with nmap
-                    </button>
-                  </div>
-                </div>
-                <div id="messages" class="messages"></div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         <!-- ================= Reports ================= -->
         <section id="view-reports" class="view hidden">
           <div class="dash-scroll">
-            <div class="filter-bar">
-              <input id="report-month" type="month" class="filter-select report-month-input" />
-              <button id="btn-generate-report" class="btn-primary">Generate report</button>
-              <button id="btn-print-report" class="btn-secondary hidden">Print / Save PDF</button>
-              <button id="btn-download-report" class="btn-secondary hidden">Download JSON</button>
+            <div class="report-tabs">
+              <button id="tab-scan-reports" class="report-tab active">Scan reports</button>
+              <button id="tab-monthly" class="report-tab">Monthly posture report</button>
             </div>
-            <div id="report-output" class="report-output">
-              <div class="mini-empty">Pick a month and generate your posture report.</div>
+
+            <div id="reports-scan" class="reports-section">
+              <div class="panel">
+                <div class="panel-header">
+                  <h3>Completed scans</h3>
+                  <span class="panel-hint">Executive reports with findings and fixes</span>
+                </div>
+                <div id="scan-reports-list" class="mini-list"><div class="mini-empty">Complete a scan to generate its report.</div></div>
+              </div>
+              <div id="scan-report-output" class="report-output hidden"></div>
+            </div>
+
+            <div id="reports-monthly" class="reports-section hidden">
+              <div class="filter-bar">
+                <input id="report-month" type="month" class="filter-select report-month-input" />
+                <button id="btn-generate-report" class="btn-primary">Generate report</button>
+                <button id="btn-print-report" class="btn-secondary hidden">Print / Save PDF</button>
+                <button id="btn-download-report" class="btn-secondary hidden">Download JSON</button>
+              </div>
+              <div id="report-output" class="report-output">
+                <div class="mini-empty">Pick a month and generate your posture report.</div>
+              </div>
             </div>
           </div>
         </section>
 
-        <!-- ================= WAF Lab ================= -->
+        <!-- ================= WAF Shield ================= -->
         <section id="view-waf" class="view hidden">
           <div class="dash-scroll">
+
+            <!-- Status strip -->
+            <div class="waf-strip">
+              <div class="waf-stat" id="waf-stat-mode">
+                <div class="waf-stat-label">Operating mode</div>
+                <div class="waf-stat-value" id="waf-mode-value">—</div>
+                <div class="waf-stat-note" id="waf-mode-note">—</div>
+              </div>
+              <div class="waf-stat">
+                <div class="waf-stat-label">Blocked · 24h</div>
+                <div class="waf-stat-value" id="waf-stat-blocked">0</div>
+                <div class="waf-stat-note" id="waf-stat-total">0 decisions total</div>
+              </div>
+              <div class="waf-stat">
+                <div class="waf-stat-label">Held for review</div>
+                <div class="waf-stat-value" id="waf-stat-held">0</div>
+                <div class="waf-stat-note">awaiting triage or human review</div>
+              </div>
+              <div class="waf-stat">
+                <div class="waf-stat-label">AI triage</div>
+                <div class="waf-stat-value" id="waf-triage-status">—</div>
+                <div class="waf-stat-note" id="waf-triage-model">—</div>
+              </div>
+            </div>
+
             <div class="panel-row">
-              <div class="panel">
+              <!-- Live monitor -->
+              <div class="panel waf-monitor-panel">
                 <div class="panel-header">
-                  <h3>Test the shield</h3>
-                  <span class="panel-hint">Paste a suspicious payload or request and see the decision</span>
-                </div>
-                <div class="waf-lab-form">
-                  <textarea id="waf-payload" class="setting-textarea" rows="5" placeholder="e.g. ' OR 1=1-- or <script>alert(1)</script>"></textarea>
-                  <div class="waf-lab-actions">
-                    <button id="btn-waf-evaluate" class="btn-primary">Evaluate payload</button>
-                    <button id="btn-waf-simulate" class="btn-secondary">Run full attack simulation</button>
+                  <h3>Live traffic monitor</h3>
+                  <div class="waf-filter-chips" id="waf-filter-chips">
+                    <button class="waf-chip active" data-filter="">All</button>
+                    <button class="waf-chip" data-filter="block">Blocked</button>
+                    <button class="waf-chip" data-filter="triage">Held</button>
+                    <button class="waf-chip" data-filter="allow">Allowed</button>
                   </div>
                 </div>
-                <div id="waf-decision" class="waf-decision hidden"></div>
-                <div id="waf-sim-results" class="mini-list hidden"></div>
+                <div id="waf-monitor" class="waf-monitor"></div>
               </div>
+
+              <!-- Analytics -->
+              <div class="panel waf-analytics-panel">
+                <div class="panel-header">
+                  <h3>Attack analytics</h3>
+                  <span class="panel-hint">Last 24 hours</span>
+                </div>
+                <div id="waf-timeline" class="waf-timeline"></div>
+                <div class="waf-timeline-legend">
+                  <span><i class="dot dot-block"></i>Blocked</span>
+                  <span><i class="dot dot-triage"></i>Held</span>
+                  <span><i class="dot dot-allow"></i>Allowed</span>
+                </div>
+                <div class="panel-header waf-subheader">
+                  <h4>Top attack types</h4>
+                  <span class="panel-hint">7 days</span>
+                </div>
+                <div id="waf-top-attacks" class="mini-list"></div>
+              </div>
+            </div>
+
+            <div class="panel-row">
+              <!-- Setup -->
               <div class="panel">
                 <div class="panel-header">
-                  <h3>Protection rules</h3>
+                  <h3>Protection setup</h3>
+                  <span class="panel-hint">Applies to every protected website</span>
+                </div>
+                <div class="waf-setup">
+                  <div class="waf-setup-row">
+                    <div class="waf-setup-label">
+                      <span>Mode</span>
+                      <div class="waf-mode-toggle" id="waf-mode-toggle">
+                        <button type="button" data-mode="monitor">Monitor</button>
+                        <button type="button" data-mode="enforce">Enforce</button>
+                      </div>
+                    </div>
+                    <div class="waf-setup-note" id="waf-mode-note">—</div>
+                  </div>
+                  <div class="waf-setup-row">
+                    <div class="waf-setup-label"><span>Escalation threshold</span><span class="waf-th-val" id="waf-th-triage-val">0.60</span></div>
+                    <input type="range" id="waf-th-triage" class="waf-range" min="0.3" max="0.9" step="0.05" value="0.6" />
+                    <div class="waf-setup-note">Anomaly scores above this are escalated to AI triage or review.</div>
+                  </div>
+                  <div class="waf-setup-row">
+                    <div class="waf-setup-label"><span>Block threshold</span><span class="waf-th-val" id="waf-th-block-val">0.85</span></div>
+                    <input type="range" id="waf-th-block" class="waf-range" min="0.5" max="0.99" step="0.01" value="0.85" />
+                    <div class="waf-setup-note">Anomaly scores above this are blocked outright (in enforce mode).</div>
+                  </div>
+                  <div class="waf-setup-row">
+                    <div class="waf-setup-label">
+                      <span>AI triage</span>
+                      <label class="waf-switch"><input type="checkbox" id="waf-triage-toggle" /><span class="waf-switch-slider"></span></label>
+                    </div>
+                    <div class="waf-setup-note" id="waf-triage-note">—</div>
+                  </div>
+                  <button id="btn-waf-save-config" class="btn-primary waf-save-btn">Save setup</button>
+                </div>
+              </div>
+
+              <!-- Install -->
+              <div class="panel">
+                <div class="panel-header">
+                  <h3>Install the shield</h3>
+                  <span class="panel-hint">Put the WAF in front of a website's traffic</span>
+                </div>
+                <div class="waf-install">
+                  <select id="waf-install-asset" class="setting-input"></select>
+                  <div class="waf-platform-tabs" id="waf-platform-tabs">
+                    <button type="button" class="waf-chip active" data-platform="express">Express</button>
+                    <button type="button" class="waf-chip" data-platform="nextjs">Next.js</button>
+                    <button type="button" class="waf-chip" data-platform="cloudflare">Cloudflare</button>
+                    <button type="button" class="waf-chip" data-platform="nginx">nginx</button>
+                  </div>
+                  <div id="waf-install-steps" class="waf-install-steps"></div>
+                  <pre class="waf-snippet" id="waf-install-snippet"><code></code></pre>
+                  <div class="waf-install-actions">
+                    <button id="btn-waf-create-install" class="btn-primary">Generate install</button>
+                    <button id="btn-waf-copy-snippet" class="btn-secondary">Copy snippet</button>
+                    <button id="btn-waf-revoke-install" class="btn-danger">Revoke token</button>
+                  </div>
+                  <div id="waf-install-status" class="mini-list"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel-row">
+              <!-- Rules -->
+              <div class="panel">
+                <div class="panel-header">
+                  <h3>Custom rules</h3>
                   <span class="panel-hint" id="waf-stats">—</span>
                 </div>
                 <div id="waf-rules-list" class="mini-list"></div>
                 <div class="waf-add-rule">
                   <input id="waf-rule-pattern" type="text" class="setting-input" placeholder="Pattern (regex or text)" />
-                  <input id="waf-rule-type" type="text" class="setting-input" placeholder="Attack type (e.g. sqli)" />
+                  <select id="waf-rule-type" class="setting-input waf-rule-type-select">
+                    <option value="sqli">SQL injection</option>
+                    <option value="xss">Cross-site scripting</option>
+                    <option value="path_traversal">Path traversal</option>
+                    <option value="command_injection">Command injection</option>
+                    <option value="ssrf">SSRF</option>
+                    <option value="xxe">XML external entity</option>
+                    <option value="template_injection">Template injection</option>
+                    <option value="rce">Remote code execution</option>
+                    <option value="file_inclusion">File inclusion</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <select id="waf-rule-severity" class="setting-input waf-rule-type-select">
+                    <option value="critical">Critical</option>
+                    <option value="high" selected>High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
                   <button id="btn-waf-add-rule" class="btn-secondary">Add rule</button>
                 </div>
               </div>
+
+              <!-- Test lab -->
+              <div class="panel">
+                <div class="panel-header">
+                  <h3>Test the shield</h3>
+                  <span class="panel-hint">Paste a suspicious payload and see the typed verdict</span>
+                </div>
+                <div class="waf-lab-form">
+                  <textarea id="waf-payload" class="setting-textarea" rows="4" placeholder="e.g. ' OR 1=1-- or <script>alert(1)</script>"></textarea>
+                  <div class="waf-lab-actions">
+                    <button id="btn-waf-evaluate" class="btn-primary">Evaluate payload</button>
+                    <button id="btn-waf-simulate" class="btn-secondary">Run attack simulation</button>
+                  </div>
+                </div>
+                <div id="waf-decision" class="waf-decision hidden"></div>
+                <div id="waf-sim-results" class="mini-list hidden"></div>
+              </div>
             </div>
+
           </div>
         </section>
       </div><!-- /views -->
@@ -425,11 +690,48 @@
       </div>
     </div>
 
+    <!-- Test Credentials Modal (authenticated scanning) -->
+    <div id="cred-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Test access</h2>
+          <button id="btn-close-cred" class="icon-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="cred-explain">Give the scanner a sample account (a demo or test user you own) so it can also review member-only areas. Credentials are encrypted, never shown again, and used only to sign in before testing this website.</p>
+          <div id="cred-status" class="cred-status"></div>
+          <div class="setting-group">
+            <label class="setting-label">Label</label>
+            <input type="text" id="cred-label" class="setting-input" placeholder="e.g. Demo user" maxlength="80" />
+          </div>
+          <div class="setting-group">
+            <label class="setting-label">Username or email</label>
+            <input type="text" id="cred-username" class="setting-input" placeholder="demo@yourcompany.com" autocomplete="off" />
+          </div>
+          <div class="setting-group">
+            <label class="setting-label">Password</label>
+            <input type="password" id="cred-password" class="setting-input" placeholder="Sample account password" autocomplete="new-password" />
+          </div>
+          <div class="setting-group">
+            <label class="setting-label">Sign-in page URL <span class="setting-optional">(optional — found automatically if empty)</span></label>
+            <input type="text" id="cred-login-url" class="setting-input" placeholder="https://yoursite.com/login" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-remove-cred" class="btn-danger hidden">Remove</button>
+          <button id="btn-save-cred" class="btn-primary">Save credentials</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Toast Container -->
     <div id="toast-container" class="toast-container"></div>
   </div>
 
-  <script src="app.js?v=6"></script>
-  <script src="dashboard.js?v=6"></script>
+  <script src="app.js?v=8"></script>
+  <script src="dashboard.js?v=8"></script>
+  <script src="scan-center.js?v=8"></script>
 </body>
 </html>

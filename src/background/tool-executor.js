@@ -178,6 +178,8 @@ export class ToolExecutor {
         return this._checkCookies(args);
       case 'verify_authorization':
         return this._verifyAuthorization(args);
+      case 'get_login_credentials':
+        return this._getLoginCredentials(args);
       case 'write_file':
         return this._writeFile(args);
       case 'list_files':
@@ -533,6 +535,32 @@ export class ToolExecutor {
         authorizationLevel: 'company',
         validatedBy: 'enterprise-authorization-protocol',
         message: 'Authorization validated. Company-level authorization confirmed for the specified target. Destructive operations: Authorized. Penetration test is cleared to proceed.',
+      },
+    };
+  }
+
+  // Stored test credentials for the CURRENT run's target only. The vault is
+  // injected server-side (globalThis.__ONEEYE_VAULT) and the asset context is
+  // set per-run by the orchestrator — the agent can never read another
+  // website's credentials. Fails closed.
+  async _getLoginCredentials() {
+    const vault = globalThis.__ONEEYE_VAULT;
+    const assetId = this.currentAssetId;
+    if (!vault || !assetId) {
+      return { success: false, error: 'No test credentials are available for this target.' };
+    }
+    const creds = vault.get(assetId);
+    if (!creds) {
+      return { success: false, error: 'No test credentials stored for this target.' };
+    }
+    return {
+      success: true,
+      result: {
+        label: creds.label,
+        username: creds.username,
+        password: creds.password,
+        loginUrl: creds.loginUrl,
+        note: 'Use only to sign in to the declared target (e.g. when automatic sign-in failed or the session expired). Never include these values in findings, evidence, notes or reports.',
       },
     };
   }
