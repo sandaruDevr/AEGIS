@@ -1,8 +1,64 @@
 # AEGIS — Autonomous AI Security Operations
 
-Autonomous AI security operations for businesses that live online: pentest agents that find and verify weaknesses, an AI WAF that blocks live attacks, and a dashboard an owner can actually read — built to the AEGIS Gate-1 plan (see `Gate1-WriteUp- AEGIS.pdf`).
+> **Affordable enterprise-grade autonomous cybersecurity for small and medium businesses — built for the agentic era, where attacks strike at machine speed and human-paced defense can't keep up.**
+>
+> Two components, one closed loop:
+>
+> - **WAF Layer** — continuously monitors, tracks, and measures every request. Three-tier detection blocks even the novel, AI-generated attacks that static rules miss.
+> - **Penetration & Assessment Agents** — cover a month of manual effort in minutes, under $1. Saves your website. Your database. Your business. Your money. Your reputation. The manual equivalent costs hundreds of dollars.
+>
+> Real gap. Huge market. Endless potential. Unignorable.
+> **Nothing today combines depth, continuity, and affordability.**
 
-## Product Components (per plan §08)
+This repository is the working platform: pentest agents that find and verify weaknesses, a three-tier AI WAF that blocks live attacks, and a Control Center an owner can actually read — server, agent engine, WAF, and full UI.
+
+## Key Features
+
+**Autonomous pentest agents**
+- **Self-directed scanning** — the agent reconnoiters the target first, then announces its own test plan (`[PLAN]` / `[CHECK]` protocol); suspected issues stream live and are persisted only after verification
+- **Strict scope & budgets** — every run gets a target class, an allowed toolset, and hard caps (tool calls / time / LLM spend) enforced at the tool layer; violations are logged
+- **Verification layer** — a finding is persisted only with title, severity, plain-language summary, and evidence; duplicates dropped; stored test credentials redacted before persistence
+- **Authenticated scanning** — an AES-256-GCM credential vault signs the agent into the target; credentials never reach the agent or the UI
+- **Closed loop** — verified findings auto-tune WAF rules; live attack telemetry steers the next scan
+
+**WAF Shield**
+- **Three-tier detection**: Tier 1 signatures (OWASP-class, decode-aware incl. URL/double-encoding) → Tier 2 anomaly scoring (tunable thresholds) → Tier 3 optional Jev typed triage
+- **Monitor / enforce modes** — tune rules safely first, enforce after; every decision typed and logged (action, attack type, tier, confidence, reasons)
+- **Deploy anywhere** — per-website install tokens and ready-to-paste adapters for Express, Next.js, Cloudflare Worker, and nginx
+- **Payload test lab** and attack analytics (24h timeline, top attack types)
+
+**Owner-first Control Center**
+- Eight views, zero chat interface: Dashboard, Websites, Scan Center, Vulnerabilities, Mitigation, Attack Log, Reports, WAF Shield
+- **Plain-language translation layer** — no tool names, prompts, or LLM text ever reach the UI
+- Posture score /100, SLA due dates, executive scan reports, monthly posture report (print/PDF, JSON)
+
+## What's Fully Functional vs. What Needs a Key
+
+Honest status of every subsystem — nothing is silently mocked:
+
+| Subsystem | Status |
+|-----------|--------|
+| Control Center — all 8 views | **Fully functional** — wired to the live API + WebSocket |
+| WAF Tier 1 — signatures + custom rules | **Fully functional** — no external dependencies |
+| WAF Tier 2 — anomaly scoring | **Fully functional** — no external dependencies |
+| WAF installs, edge endpoint, 4 adapters | **Fully functional** |
+| Credential vault (AES-256-GCM) | **Fully functional** |
+| Event store, posture derivation, reports | **Fully functional** — append-only JSONL, never mutated |
+| Scan pipeline (queue, phases, translation) | **Fully functional** |
+| Agent (ReAct loop, tools, budgets, verification) | **Needs an LLM key** — OpenRouter or OpenAI. Without a key scans fail loudly; nothing is faked |
+| WAF Tier 3 — Jev typed triage | **Optional** — reuses the OpenRouter key (or a separate JEV key). Without it the WAF runs unchanged: escalated decisions stay held for review (fail-safe, never fail-open) |
+| Network/infrastructure scope | **Optional** — WSL2 with the Kali toolset (nmap, nikto, sqlmap) on Windows. Application-layer scans need none of it |
+| E2E test suite | `scripts/test_waf.py` — 7 checks incl. the full request path through a real Express app |
+
+**Deliberate simplifications (not hidden, just v1):**
+- File-based persistence (JSONL + JSON state) — zero-database setup, no external DB
+- Single `AUTH_TOKEN` tenancy — not yet a multi-tenant SaaS
+- One agent run at a time
+- The verification layer validates evidence presence, severity, and dedupe — it does not independently re-exploit findings
+
+**Demo target:** `examples/waf-test-app` — an intentionally vulnerable Express app with the AEGIS middleware wired in (`npm run waf-test-app`).
+
+## Architecture
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
@@ -15,7 +71,7 @@ Autonomous AI security operations for businesses that live online: pentest agent
 │                         Server (server.js)                         │
 │  ┌────────────────┐  ┌──────────────┐  ┌────────────┐  ┌────────┐  │
 │  │ Scan Manager   │→ │ Agent        │→ │ WAF Engine │→ │ Event  │  │
-│  │ jobs, queue,   │  │ Orchestrator │  │ two-tier,  │  │ Store  │  │
+│  │ jobs, queue,   │  │ Orchestrator │  │ three-tier │  │ Store  │  │
 │  │ phases, friend-│  │ scope+budget │  │ typed &    │  │ JSONL  │  │
 │  │ ly translation │  │ + verification│ │ calibrated │  │        │  │
 │  └────────────────┘  └──────────────┘  └────────────┘  └────────┘  │
@@ -83,7 +139,7 @@ Autonomous AI security operations for businesses that live online: pentest agent
 
 WebSocket broadcasts scan lifecycle events (`SCAN_JOBS`, `SCAN_JOB`, `SCAN_PROGRESS`, `SCAN_ACTIVITY`, `SCAN_FINDING`) so every open dashboard stays in sync.
 
-## Architecture
+## Repository Layout
 
 ```
 server.js                     # Express + WS: API layer, wiring, security (helmet, rate limits, auth)
@@ -114,33 +170,43 @@ public/                       # Control Center (this UI)
   ├── style.css               #   design system
   └── workflows.html          #   workflow executor (advanced)
 native-host/                  # WSL2 bridge for native messaging
+examples/waf-test-app/         # intentionally vulnerable demo target (Express + AEGIS middleware)
+scripts/test_waf.py            # end-to-end WAF test suite
 ```
 
-## Installation
+## Setup
 
-1. Get an OpenRouter API key from [openrouter.ai/keys](https://openrouter.ai/keys)
-2. `npm install`
-3. Copy `.env.example` to `.env` and set `OPENROUTER_API_KEY`
-4. `npm start`
-5. Open `http://localhost:3000` — add a website under **Websites**, then start a scan from the **Scan Center**
+1. **Install** — `npm install` (Playwright Chromium installs automatically)
+2. **Configure** — copy `.env.example` to `.env`:
+   - `OPENROUTER_API_KEY` *(required for scans)* — from [openrouter.ai/keys](https://openrouter.ai/keys); or `OPENAI_API_KEY` with `LLM_PROVIDER=openai`
+   - `AUTH_TOKEN` *(optional on localhost, required if `HOST=0.0.0.0`)* — Bearer auth for all API + WebSocket endpoints
+   - `CREDENTIALS_SECRET` *(optional)* — AES-256-GCM key for the credential vault; a local key file is auto-generated if empty
+   - `WSL_ENABLED` *(optional)* — set `false` to skip network-scope tooling
+3. **Run** — `npm start`, then open `http://localhost:3000`
+4. **First scan** — add a website under **Websites**, then launch one from the **Scan Center**
+
+**Verify the WAF end-to-end:**
+
+```bash
+python scripts/test_waf.py            # provisions its own test target + token
+npm run waf-test-app                  # demo target app (Express + middleware)
+python scripts/test_waf.py --app-url http://localhost:4000
+```
 
 ## Security Notes
 
 - Server binds to localhost by default; set `AUTH_TOKEN` (required if `HOST=0.0.0.0`)
 - Helmet headers, rate limiting, payload size limits, path-traversal protection on downloads
 - Agent runs are scope-bounded and read-only-first; the verification layer blocks unevidenced findings
-
-## Requirements
-
-- Node.js ≥ 18
-- Playwright Chromium (`npm run install-browser`)
-- WSL2 with security tools (nmap, nikto, sqlmap, …) for network testing
-- OpenRouter or OpenAI API key
+- Escalated WAF decisions stay held for review if the triage model is unavailable — never fail-open
+- Test only targets you own or are authorized to assess
 
 ## Tech Stack
 
-- **Node.js / Express** + WebSocket
-- **Vanilla JS** dashboard with modern CSS (no framework dependencies)
-- **Playwright** browser pool for page-context tools
-- **WSL2 (Kali)** security toolset
-- **OpenRouter / OpenAI** LLMs with prompt caching and tiered models
+- **Server:** Node.js ≥ 18 · Express 4 · ws (WebSocket) · helmet · express-rate-limit
+- **Agent:** ReAct loop over OpenRouter / OpenAI — streaming, tool calling, prompt caching, tiered models
+- **Browser automation:** Playwright (Chromium) + stealth plugin
+- **Network tools (optional):** WSL2 Kali toolset — nmap, nikto, sqlmap
+- **Decisions:** Jev typed triage (`typesafe/jev-1.13`) via the OpenRouter Decisions API — optional
+- **Frontend:** vanilla JS + a custom CSS design system — no framework dependencies
+- **Storage:** file-based — append-only JSONL event store + JSON state (zero-database)
